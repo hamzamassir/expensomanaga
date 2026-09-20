@@ -43,10 +43,7 @@ export function ExpenseDonut({ data }) {
   }
 
   const chartData = {
-    labels: data.map((d) => {
-      const meta = getCategoryMeta(d.category)
-      return `${meta.emoji} ${meta.label}`
-    }),
+    labels: data.map((d) => getCategoryMeta(d.category).label),
     datasets: [
       {
         data: data.map((d) => d.total),

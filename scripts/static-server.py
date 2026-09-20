@@ -17,6 +17,8 @@ class SpaHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         path = self.path.split("?", 1)[0]
+        if path in ("/sw.js", "/manifest.webmanifest") or path.startswith("/workbox-"):
+            return super().do_GET()
         local = os.path.join(ROOT, path.lstrip("/"))
         if path != "/" and not os.path.isfile(local):
             self.path = "/index.html"

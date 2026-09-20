@@ -1,7 +1,7 @@
 export const ACCOUNTS = [
-  { id: 'main', name: 'Main Account', icon: '🏦' },
-  { id: 'savings', name: 'Savings', icon: '🐷' },
-  { id: 'cash', name: 'Cash', icon: '💵' },
+  { id: 'main', name: 'Main Account', remix: 'ri-bank-line' },
+  { id: 'savings', name: 'Savings', remix: 'ri-safe-2-line' },
+  { id: 'cash', name: 'Cash', remix: 'ri-money-dollar-circle-line' },
 ]
 
 export const ACCOUNT_MAP = Object.fromEntries(ACCOUNTS.map((a) => [a.id, a]))
@@ -14,26 +14,26 @@ export const TRANSACTION_TYPES = [
 ]
 
 export const CATEGORIES = [
-  { id: 'transportation', label: 'Transportation', emoji: '🚗', type: 'expense' },
-  { id: 'food', label: 'Food', emoji: '🍔', type: 'expense' },
-  { id: 'gifts', label: 'Gifts', emoji: '🎁', type: 'expense' },
-  { id: 'family', label: 'Family', emoji: '👨‍👩‍👧', type: 'expense' },
-  { id: 'internet', label: 'Internet', emoji: '🌐', type: 'expense' },
-  { id: 'salary', label: 'Salary', emoji: '💰', type: 'income' },
-  { id: 'interest', label: 'Interest', emoji: '📈', type: 'income' },
-  { id: 'other_income', label: 'Other Income', emoji: '💵', type: 'income' },
-  { id: 'other_expense', label: 'Other', emoji: '📦', type: 'expense' },
-  { id: 'transfer', label: 'Transfer', emoji: '↔️', type: 'transfer' },
-  { id: 'previous_balance', label: 'Previous Balance', emoji: '🏁', type: 'previous_balance' },
+  { id: 'transportation', label: 'Transportation', phosphor: 'Car', type: 'expense' },
+  { id: 'food', label: 'Food', phosphor: 'ForkKnife', type: 'expense' },
+  { id: 'gifts', label: 'Gifts', phosphor: 'Gift', type: 'expense' },
+  { id: 'family', label: 'Family', phosphor: 'UsersThree', type: 'expense' },
+  { id: 'internet', label: 'Internet', phosphor: 'WifiHigh', type: 'expense' },
+  { id: 'salary', label: 'Salary', phosphor: 'Money', type: 'income' },
+  { id: 'interest', label: 'Interest', phosphor: 'TrendUp', type: 'income' },
+  { id: 'other_income', label: 'Other Income', phosphor: 'Wallet', type: 'income' },
+  { id: 'other_expense', label: 'Other', phosphor: 'Package', type: 'expense' },
+  { id: 'transfer', label: 'Transfer', phosphor: 'ArrowsLeftRight', type: 'transfer' },
+  { id: 'previous_balance', label: 'Previous Balance', phosphor: 'Flag', type: 'previous_balance' },
 ]
 
 export const CATEGORY_MAP = Object.fromEntries(CATEGORIES.map((c) => [c.id, c]))
 
 export const QUICK_PRESETS = [
-  { label: 'Transport', description: 'Transportation', amount: 5, category: 'transportation', emoji: '🚗' },
-  { label: 'Coffee', description: 'Food', amount: 10, category: 'food', emoji: '☕' },
-  { label: 'Lunch', description: 'Food', amount: 55, category: 'food', emoji: '🍔' },
-  { label: 'Bus', description: 'Transportation', amount: 5, category: 'transportation', emoji: '🚌' },
+  { label: 'Transport', description: 'Transportation', amount: 5, category: 'transportation' },
+  { label: 'Coffee', description: 'Food', amount: 10, category: 'food' },
+  { label: 'Lunch', description: 'Food', amount: 55, category: 'food' },
+  { label: 'Bus', description: 'Transportation', amount: 5, category: 'transportation' },
 ]
 
 export function normalizeCategory(description, type) {
@@ -118,4 +118,10 @@ export function resolveAccountForTx({ description, type, category, account }) {
   const resolved = inferAccount(description, type, category ?? normalizeCategory(description, type))
   if (category === 'interest' || description?.toLowerCase().includes('interest')) return 'savings'
   return resolved
+}
+
+export function amountPrefix(type) {
+  if (type === 'income' || type === 'previous_balance') return '+'
+  if (type === 'expense') return '-'
+  return ''
 }

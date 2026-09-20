@@ -1,4 +1,4 @@
-import { Search, X } from 'lucide-react'
+import RemixIcon from './icons/RemixIcon'
 import { CATEGORIES, TRANSACTION_TYPES } from '../utils/constants'
 
 export default function FilterBar({ filters, onChange, onClear }) {
@@ -10,7 +10,10 @@ export default function FilterBar({ filters, onChange, onClear }) {
   return (
     <div className="glass rounded-2xl p-2.5 space-y-2 md:p-3 md:space-y-3">
       <div className="relative">
-        <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted md:left-3" />
+        <RemixIcon
+          name="ri-search-line"
+          className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted md:left-3"
+        />
         <input
           type="search"
           placeholder="Search…"
@@ -24,7 +27,7 @@ export default function FilterBar({ filters, onChange, onClear }) {
             onClick={() => set('search', '')}
             className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-white md:right-3"
           >
-            <X className="h-4 w-4" />
+            <RemixIcon name="ri-close-line" className="text-base" />
           </button>
         )}
       </div>
@@ -38,7 +41,7 @@ export default function FilterBar({ filters, onChange, onClear }) {
           <option value="">Category</option>
           {CATEGORIES.map((c) => (
             <option key={c.id} value={c.id}>
-              {c.emoji} {c.label}
+              {c.label}
             </option>
           ))}
         </select>

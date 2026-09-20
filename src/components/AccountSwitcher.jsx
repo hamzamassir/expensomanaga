@@ -1,4 +1,5 @@
 import { ACCOUNTS, ACCOUNT_MAP, formatMAD } from '../utils/constants'
+import { AccountIcon } from './icons/RemixIcon'
 
 export default function AccountSwitcher({ balances, netWorth, activeAccount, onChange }) {
   return (
@@ -16,7 +17,7 @@ export default function AccountSwitcher({ balances, netWorth, activeAccount, onC
             activeAccount === 'all' ? 'glass-active' : 'glass-subtle hover:glass-active'
           }`}
         >
-          <span className="text-base md:text-lg">📊</span>
+          <AccountIcon accountId="all" className="text-base md:text-lg" />
           <p className="mt-0.5 text-xs font-medium md:mt-1 md:text-sm">All</p>
           <p className="text-[10px] text-muted md:text-xs">Combined</p>
         </button>
@@ -30,7 +31,7 @@ export default function AccountSwitcher({ balances, netWorth, activeAccount, onC
               activeAccount === acc.id ? 'glass-active' : 'glass-subtle hover:glass-active'
             }`}
           >
-            <span className="text-base md:text-lg">{acc.icon}</span>
+            <AccountIcon accountId={acc.id} className="text-base md:text-lg" />
             <p className="mt-0.5 truncate text-xs font-medium md:mt-1 md:text-sm">{acc.name}</p>
             <p
               className={`text-xs font-semibold tabular-nums md:text-sm ${

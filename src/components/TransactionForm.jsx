@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Plus, Zap } from 'lucide-react'
+import RemixIcon from './icons/RemixIcon'
+import { PresetCategoryIcon } from './icons/CategoryIcon'
 import {
   ACCOUNTS,
   CATEGORIES,
@@ -100,10 +101,10 @@ export default function TransactionForm({ onAdd, onQuickAdd }) {
             key={preset.label}
             type="button"
             onClick={() => onQuickAdd(preset)}
-            className="glass-subtle flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-medium transition active:scale-95 hover:glass-active md:px-3 md:text-xs"
+            className="glass-subtle flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-medium transition active:scale-95 hover:glass-active md:px-3 md:text-xs"
           >
-            <Zap className="h-3 w-3 text-income" />
-            {preset.emoji} {preset.label}
+            <PresetCategoryIcon categoryId={preset.category} />
+            {preset.label} {preset.amount}
           </button>
         ))}
       </div>
@@ -114,7 +115,7 @@ export default function TransactionForm({ onAdd, onQuickAdd }) {
           onClick={() => setOpen(true)}
           className="glass-subtle flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-white/15 py-2.5 text-sm font-medium text-muted transition hover:glass-active hover:text-white md:py-3"
         >
-          <Plus className="h-4 w-4" />
+          <RemixIcon name="ri-add-circle-line" className="text-base" />
           Add transaction
         </button>
       ) : (
@@ -186,7 +187,7 @@ export default function TransactionForm({ onAdd, onQuickAdd }) {
                         : c.type === 'expense',
                 ).map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.emoji} {c.label}
+                    {c.label}
                   </option>
                 ))}
               </select>
@@ -204,7 +205,7 @@ export default function TransactionForm({ onAdd, onQuickAdd }) {
                 >
                   {ACCOUNTS.map((a) => (
                     <option key={a.id} value={a.id}>
-                      {a.icon} {a.name}
+                      {a.name}
                     </option>
                   ))}
                 </select>
@@ -218,7 +219,7 @@ export default function TransactionForm({ onAdd, onQuickAdd }) {
                 >
                   {ACCOUNTS.map((a) => (
                     <option key={a.id} value={a.id}>
-                      {a.icon} {a.name}
+                      {a.name}
                     </option>
                   ))}
                 </select>
@@ -227,7 +228,7 @@ export default function TransactionForm({ onAdd, onQuickAdd }) {
           ) : (
             <label className="block space-y-0.5">
               <span className="text-[10px] text-muted md:text-xs">
-                Account {interestLocked && '· interest → Savings'}
+                Account {interestLocked && '(interest → Savings)'}
               </span>
               <select
                 value={interestLocked ? 'savings' : form.account}
@@ -237,7 +238,7 @@ export default function TransactionForm({ onAdd, onQuickAdd }) {
               >
                 {ACCOUNTS.map((a) => (
                   <option key={a.id} value={a.id}>
-                    {a.icon} {a.name}
+                    {a.name}
                   </option>
                 ))}
               </select>

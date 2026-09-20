@@ -1,22 +1,18 @@
 import { useMemo, useState } from 'react'
-import { Wallet, Download, Upload, RefreshCw } from 'lucide-react'
+import RemixIcon from './components/icons/RemixIcon'
 import { useTransactions } from './hooks/useTransactions'
+import { useGoals } from './hooks/useGoals'
 import AccountSwitcher from './components/AccountSwitcher'
 import Dashboard from './components/Dashboard'
 import TransactionForm from './components/TransactionForm'
 import TransactionList from './components/TransactionList'
 import FilterBar from './components/FilterBar'
 import { MobileBottomNav, DesktopNav } from './components/BottomNav'
-import MockAIUpload from './components/MockAIUpload'
+import FinancialGoals, { GoalsSummary } from './components/FinancialGoals'
+import InstallPrompt from './components/InstallPrompt'
 import { ExpenseDonut, CashFlowBar, NetTrendLine } from './components/Charts'
 import { currentMonthKey, getCategoryMeta } from './utils/constants'
-import {
-  downloadCsv,
-  parseCsv,
-  expenseByCategory,
-  cashFlowByDay,
-  mockParseScreenshot,
-} from './utils/storage'
+import { downloadCsv, parseCsv, expenseByCategory, cashFlowByDay } from './utils/storage'
 
 const defaultFilters = {
   search: '',
@@ -41,6 +37,8 @@ export default function App() {
     monthSummary,
     filter,
   } = useTransactions()
+
+  const { goals, addGoal, updateGoal, deleteGoal } = useGoals()
 
   const [tab, setTab] = useState('home')
   const [filters, setFilters] = useState(defaultFilters)
@@ -69,7 +67,7 @@ export default function App() {
     return raw.map((r) => ({
       ...r,
       pct: (r.total / total) * 100,
-      emoji: getCategoryMeta(r.category).emoji,
+      categoryId: r.category,
       category: getCategoryMeta(r.category).label,
     }))
   }, [transactions, month])
@@ -80,6 +78,19 @@ export default function App() {
   )
   const cashFlowData = useMemo(() => cashFlowByDay(transactions, month), [transactions, month])
 
+  const goalsSummary = useMemo(
+    () =>
+      goals.length ? (
+        <GoalsSummary
+          goals={goals}
+          balances={balances}
+          netWorth={netWorth}
+          monthSummary={monthSummary}
+        />
+      ) : null,
+    [goals, balances, netWorth, monthSummary],
+  )
+
   const handleQuickAdd = (preset) => {
     addTransaction({
       date: new Date().toISOString().slice(0, 10),
@@ -89,14 +100,7 @@ export default function App() {
       category: preset.category,
       account: activeAccount === 'all' || activeAccount === 'cash' ? 'main' : activeAccount,
     })
-    showToast(`${preset.emoji} ${preset.label} logged!`)
-  }
-
-  const handleMockAI = (file) => {
-    const parsed = mockParseScreenshot(file)
-    importTransactions(parsed, 'merge')
-    showToast(`Demo: added ${parsed.length} transactions`)
-    setTab('transactions')
+    showToast(`${preset.label} logged`)
   }
 
   const handleCsvImport = (text, mode) => {
@@ -119,6 +123,7 @@ export default function App() {
     localStorage.removeItem('expensomanaga_transactions')
     localStorage.removeItem('expensomanaga_initialized')
     localStorage.removeItem('expensomanaga_mig_interest_savings')
+    localStorage.removeItem('expensomanaga_goals')
     window.location.reload()
   }
 
@@ -127,7 +132,7 @@ export default function App() {
       <header className="sticky top-0 z-40 glass-strong border-b border-white/10">
         <div className="mx-auto flex max-w-6xl items-center gap-2 px-3 py-2 md:px-4 md:py-3">
           <div className="glass rounded-xl p-1.5 md:p-2">
-            <Wallet className="h-4 w-4 text-income md:h-5 md:w-5" />
+            <RemixIcon name="ri-wallet-3-line" className="text-base text-income md:text-lg" />
           </div>
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-base font-bold tracking-tight md:text-lg">Expensomanaga</h1>
@@ -155,9 +160,10 @@ export default function App() {
                 balances={balances}
                 netWorth={netWorth}
                 expenseBreakdown={breakdown}
+                goalsSummary={goalsSummary}
               />
               <TransactionForm onAdd={addTransaction} onQuickAdd={handleQuickAdd} />
-              <MockAIUpload onParsed={handleMockAI} />
+              <InstallPrompt />
             </>
           )}
 
@@ -195,6 +201,18 @@ export default function App() {
             </div>
           )}
 
+          {tab === 'goals' && (
+            <FinancialGoals
+              goals={goals}
+              balances={balances}
+              netWorth={netWorth}
+              monthSummary={monthSummary}
+              onAdd={addGoal}
+              onDelete={deleteGoal}
+              onUpdate={updateGoal}
+            />
+          )}
+
           {tab === 'data' && (
             <div className="space-y-2.5 md:space-y-4">
               <section className="glass rounded-2xl p-3 space-y-2 md:p-4 md:space-y-3">
@@ -208,7 +226,7 @@ export default function App() {
                   }}
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-income py-2.5 text-sm font-semibold text-black shadow-lg shadow-income/20 hover:bg-income/90 md:w-auto md:px-4"
                 >
-                  <Download className="h-4 w-4" />
+                  <RemixIcon name="ri-download-2-line" />
                   Export CSV
                 </button>
               </section>
@@ -216,7 +234,7 @@ export default function App() {
               <section className="glass rounded-2xl p-3 space-y-2 md:p-4 md:space-y-3">
                 <h2 className="text-sm font-semibold">Import</h2>
                 <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 py-4 text-sm text-muted transition hover:border-income/40 hover:text-white md:py-6">
-                  <Upload className="h-4 w-4" />
+                  <RemixIcon name="ri-upload-2-line" />
                   Choose CSV file
                   <input
                     type="file"
@@ -236,7 +254,7 @@ export default function App() {
                   onChange={(e) => setCsvPaste(e.target.value)}
                   placeholder="Paste CSV…"
                   rows={4}
-                  className="glass-input w-full rounded-xl px-3 py-2 text-xs font-mono outline-none focus:border-white/30 md:rows-5"
+                  className="glass-input w-full rounded-xl px-3 py-2 text-xs font-mono outline-none focus:border-white/30"
                 />
                 <div className="flex gap-2">
                   <button
@@ -263,7 +281,7 @@ export default function App() {
                   onClick={resetData}
                   className="flex w-full items-center justify-center gap-2 rounded-xl border border-expense/30 py-2 text-sm text-expense md:w-auto md:px-4"
                 >
-                  <RefreshCw className="h-4 w-4" />
+                  <RemixIcon name="ri-refresh-line" />
                   Reset seed data
                 </button>
               </section>

@@ -1,21 +1,18 @@
 import { useState } from 'react'
-import { Pencil, Trash2, ArrowLeftRight } from 'lucide-react'
+import RemixIcon from './icons/RemixIcon'
+import CategoryIcon from './icons/CategoryIcon'
 import {
   formatMAD,
   formatDate,
   getCategoryMeta,
   getTypeColor,
   getTypeBg,
+  amountPrefix,
   ACCOUNT_MAP,
 } from '../utils/constants'
 
 function AmountDisplay({ tx }) {
-  const prefix =
-    tx.type === 'income' || tx.type === 'previous_balance'
-      ? '+'
-      : tx.type === 'transfer'
-        ? '↔'
-        : '-'
+  const prefix = amountPrefix(tx.type)
   return (
     <span className={`font-semibold tabular-nums ${getTypeColor(tx.type)}`}>
       {prefix}
@@ -28,29 +25,29 @@ function EditRow({ tx, onSave, onCancel }) {
   const [draft, setDraft] = useState({ ...tx })
 
   return (
-    <div className="rounded-xl border border-border bg-charcoal p-3 space-y-2">
+    <div className="glass rounded-xl p-3 space-y-2">
       <div className="grid grid-cols-2 gap-2">
         <input
           type="date"
           value={draft.date}
           onChange={(e) => setDraft({ ...draft, date: e.target.value })}
-          className="rounded-lg border border-border bg-card px-2 py-1.5 text-sm"
+          className="glass-input rounded-lg px-2 py-1.5 text-sm"
         />
         <input
           type="number"
           step="0.01"
           value={draft.amount}
           onChange={(e) => setDraft({ ...draft, amount: parseFloat(e.target.value) })}
-          className="rounded-lg border border-border bg-card px-2 py-1.5 text-sm"
+          className="glass-input rounded-lg px-2 py-1.5 text-sm"
         />
       </div>
       <input
         value={draft.description}
         onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-        className="w-full rounded-lg border border-border bg-card px-2 py-1.5 text-sm"
+        className="glass-input w-full rounded-lg px-2 py-1.5 text-sm"
       />
       <div className="flex gap-2">
-        <button type="button" onClick={onCancel} className="flex-1 rounded-lg border border-border py-1.5 text-xs">
+        <button type="button" onClick={onCancel} className="glass-subtle flex-1 rounded-lg py-1.5 text-xs">
           Cancel
         </button>
         <button
@@ -101,8 +98,12 @@ export default function TransactionList({ transactions, onUpdate, onDelete }) {
             key={tx.id}
             className={`flex items-start gap-2.5 rounded-2xl p-2.5 md:gap-3 md:p-3 ${getTypeBg(tx.type)}`}
           >
-            <div className="glass flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-base md:h-10 md:w-10 md:text-lg">
-              {tx.type === 'transfer' ? <ArrowLeftRight className="h-4 w-4 text-transfer" /> : cat.emoji}
+            <div className="glass flex h-9 w-9 shrink-0 items-center justify-center rounded-xl md:h-10 md:w-10">
+              <CategoryIcon
+                categoryId={tx.type === 'transfer' ? 'transfer' : tx.category}
+                size={18}
+                className={getTypeColor(tx.type)}
+              />
             </div>
 
             <div className="min-w-0 flex-1">
@@ -114,13 +115,11 @@ export default function TransactionList({ transactions, onUpdate, onDelete }) {
                   </p>
                   {tx.type === 'transfer' && (
                     <p className="text-xs text-transfer">
-                      {ACCOUNT_MAP[tx.fromAccount]?.name} → {ACCOUNT_MAP[tx.toAccount]?.name}
+                      {ACCOUNT_MAP[tx.fromAccount]?.name} to {ACCOUNT_MAP[tx.toAccount]?.name}
                     </p>
                   )}
                   {tx.type !== 'transfer' && (
-                    <p className="text-xs text-muted capitalize">
-                      {ACCOUNT_MAP[tx.account]?.name ?? tx.account}
-                    </p>
+                    <p className="text-xs text-muted">{ACCOUNT_MAP[tx.account]?.name ?? tx.account}</p>
                   )}
                 </div>
                 <AmountDisplay tx={tx} />
@@ -134,7 +133,7 @@ export default function TransactionList({ transactions, onUpdate, onDelete }) {
                 className="rounded-lg p-1.5 text-muted hover:bg-white/5 hover:text-white"
                 aria-label="Edit"
               >
-                <Pencil className="h-3.5 w-3.5" />
+                <RemixIcon name="ri-edit-line" className="text-sm" />
               </button>
               <button
                 type="button"
@@ -144,7 +143,7 @@ export default function TransactionList({ transactions, onUpdate, onDelete }) {
                 className="rounded-lg p-1.5 text-muted hover:bg-expense/10 hover:text-expense"
                 aria-label="Delete"
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <RemixIcon name="ri-delete-bin-line" className="text-sm" />
               </button>
             </div>
           </article>
