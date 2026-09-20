@@ -26,6 +26,10 @@ class SpaHandler(http.server.SimpleHTTPRequestHandler):
         print(fmt % args)
 
 
+class ReusableTCPServer(socketserver.TCPServer):
+    allow_reuse_address = True
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--host", default="0.0.0.0")
@@ -36,7 +40,7 @@ def main() -> None:
         raise SystemExit(f"Missing {ROOT} — run npm run build on Mac first.")
 
     handler = functools.partial(SpaHandler, directory=ROOT)
-    with socketserver.TCPServer((args.host, args.port), handler) as httpd:
+    with ReusableTCPServer((args.host, args.port), handler) as httpd:
         print(f"Serving {ROOT} on http://{args.host}:{args.port}/")
         httpd.serve_forever()
 

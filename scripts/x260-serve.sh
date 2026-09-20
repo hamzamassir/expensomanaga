@@ -16,6 +16,8 @@ if [[ -n "${OLD_PID:-}" ]]; then
   kill "$OLD_PID" 2>/dev/null || true
   sleep 1
 fi
+pkill -f "static-server.py --host.*--port $PORT" 2>/dev/null || true
+sleep 0.5
 
 nohup python3 "$ROOT/scripts/static-server.py" --host 0.0.0.0 --port "$PORT" \
   >/tmp/expensomanaga.log 2>&1 &
