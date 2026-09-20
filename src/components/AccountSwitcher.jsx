@@ -2,25 +2,23 @@ import { ACCOUNTS, ACCOUNT_MAP, formatMAD } from '../utils/constants'
 
 export default function AccountSwitcher({ balances, netWorth, activeAccount, onChange }) {
   return (
-    <section className="space-y-3">
-      <div className="rounded-2xl border border-border bg-card p-4">
-        <p className="text-xs uppercase tracking-wider text-muted">Net Worth</p>
-        <p className="mt-1 text-3xl font-bold text-income">{formatMAD(netWorth)}</p>
+    <section className="space-y-2 md:space-y-3">
+      <div className="glass rounded-2xl p-3 md:p-4">
+        <p className="text-[10px] uppercase tracking-wider text-muted md:text-xs">Net Worth</p>
+        <p className="mt-0.5 text-2xl font-bold text-income md:mt-1 md:text-3xl">{formatMAD(netWorth)}</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-1.5 md:grid-cols-1 md:gap-2 lg:grid-cols-1">
         <button
           type="button"
           onClick={() => onChange('all')}
-          className={`rounded-xl border px-3 py-3 text-left transition ${
-            activeAccount === 'all'
-              ? 'border-white/20 bg-white/5'
-              : 'border-border bg-card hover:border-white/10'
+          className={`rounded-xl border px-2.5 py-2 text-left transition md:px-3 md:py-3 ${
+            activeAccount === 'all' ? 'glass-active' : 'glass-subtle hover:glass-active'
           }`}
         >
-          <span className="text-lg">📊</span>
-          <p className="mt-1 text-sm font-medium">All Accounts</p>
-          <p className="text-xs text-muted">Combined view</p>
+          <span className="text-base md:text-lg">📊</span>
+          <p className="mt-0.5 text-xs font-medium md:mt-1 md:text-sm">All</p>
+          <p className="text-[10px] text-muted md:text-xs">Combined</p>
         </button>
 
         {ACCOUNTS.map((acc) => (
@@ -28,16 +26,14 @@ export default function AccountSwitcher({ balances, netWorth, activeAccount, onC
             key={acc.id}
             type="button"
             onClick={() => onChange(acc.id)}
-            className={`rounded-xl border px-3 py-3 text-left transition ${
-              activeAccount === acc.id
-                ? 'border-white/20 bg-white/5'
-                : 'border-border bg-card hover:border-white/10'
+            className={`rounded-xl border px-2.5 py-2 text-left transition md:px-3 md:py-3 ${
+              activeAccount === acc.id ? 'glass-active' : 'glass-subtle hover:glass-active'
             }`}
           >
-            <span className="text-lg">{acc.icon}</span>
-            <p className="mt-1 text-sm font-medium">{acc.name}</p>
+            <span className="text-base md:text-lg">{acc.icon}</span>
+            <p className="mt-0.5 truncate text-xs font-medium md:mt-1 md:text-sm">{acc.name}</p>
             <p
-              className={`text-sm font-semibold ${
+              className={`text-xs font-semibold tabular-nums md:text-sm ${
                 balances[acc.id] >= 0 ? 'text-income' : 'text-expense'
               }`}
             >
@@ -48,8 +44,8 @@ export default function AccountSwitcher({ balances, netWorth, activeAccount, onC
       </div>
 
       {activeAccount !== 'all' && (
-        <p className="text-xs text-muted">
-          Showing transactions for {ACCOUNT_MAP[activeAccount]?.name}
+        <p className="hidden text-xs text-muted md:block">
+          Filter: {ACCOUNT_MAP[activeAccount]?.name}
         </p>
       )}
     </section>

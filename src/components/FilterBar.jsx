@@ -8,34 +8,34 @@ export default function FilterBar({ filters, onChange, onClear }) {
     filters.search || filters.category || filters.type || filters.dateFrom || filters.dateTo
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-3 space-y-3">
+    <div className="glass rounded-2xl p-2.5 space-y-2 md:p-3 md:space-y-3">
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+        <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted md:left-3" />
         <input
           type="search"
-          placeholder="Search description or category…"
+          placeholder="Search…"
           value={filters.search}
           onChange={(e) => set('search', e.target.value)}
-          className="w-full rounded-xl border border-border bg-charcoal py-2.5 pl-10 pr-10 text-sm outline-none focus:border-white/20"
+          className="glass-input w-full rounded-xl py-2 pl-9 pr-9 text-sm outline-none focus:border-white/30 md:py-2.5 md:pl-10 md:pr-10"
         />
         {filters.search && (
           <button
             type="button"
             onClick={() => set('search', '')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-white"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-white md:right-3"
           >
             <X className="h-4 w-4" />
           </button>
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-1.5 md:grid-cols-4 md:gap-2">
         <select
           value={filters.category}
           onChange={(e) => set('category', e.target.value)}
-          className="rounded-xl border border-border bg-charcoal px-3 py-2 text-sm outline-none focus:border-white/20"
+          className="glass-input rounded-xl px-2 py-1.5 text-xs outline-none md:px-3 md:py-2 md:text-sm"
         >
-          <option value="">All categories</option>
+          <option value="">Category</option>
           {CATEGORIES.map((c) => (
             <option key={c.id} value={c.id}>
               {c.emoji} {c.label}
@@ -46,9 +46,9 @@ export default function FilterBar({ filters, onChange, onClear }) {
         <select
           value={filters.type}
           onChange={(e) => set('type', e.target.value)}
-          className="rounded-xl border border-border bg-charcoal px-3 py-2 text-sm outline-none focus:border-white/20"
+          className="glass-input rounded-xl px-2 py-1.5 text-xs outline-none md:px-3 md:py-2 md:text-sm"
         >
-          <option value="">All types</option>
+          <option value="">Type</option>
           {TRANSACTION_TYPES.map((t) => (
             <option key={t.id} value={t.id}>
               {t.label}
@@ -60,26 +60,20 @@ export default function FilterBar({ filters, onChange, onClear }) {
           type="date"
           value={filters.dateFrom}
           onChange={(e) => set('dateFrom', e.target.value)}
-          className="rounded-xl border border-border bg-charcoal px-3 py-2 text-sm outline-none focus:border-white/20"
-          placeholder="From"
+          className="glass-input rounded-xl px-2 py-1.5 text-xs outline-none md:px-3 md:py-2 md:text-sm"
         />
 
         <input
           type="date"
           value={filters.dateTo}
           onChange={(e) => set('dateTo', e.target.value)}
-          className="rounded-xl border border-border bg-charcoal px-3 py-2 text-sm outline-none focus:border-white/20"
-          placeholder="To"
+          className="glass-input rounded-xl px-2 py-1.5 text-xs outline-none md:px-3 md:py-2 md:text-sm"
         />
       </div>
 
       {hasFilters && (
-        <button
-          type="button"
-          onClick={onClear}
-          className="text-xs text-transfer hover:underline"
-        >
-          Clear all filters
+        <button type="button" onClick={onClear} className="text-[11px] text-transfer hover:underline">
+          Clear filters
         </button>
       )}
     </div>

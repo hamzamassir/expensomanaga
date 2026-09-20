@@ -70,14 +70,14 @@ export default function TransactionList({ transactions, onUpdate, onDelete }) {
 
   if (transactions.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted">
+      <div className="rounded-2xl border border-dashed border-white/15 glass-subtle p-6 text-center text-sm text-muted md:p-8">
         No transactions match your filters.
       </div>
     )
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5 md:space-y-2">
       {transactions.map((tx) => {
         const cat = getCategoryMeta(tx.category)
         const isEditing = editingId === tx.id
@@ -99,9 +99,9 @@ export default function TransactionList({ transactions, onUpdate, onDelete }) {
         return (
           <article
             key={tx.id}
-            className={`flex items-start gap-3 rounded-2xl border p-3 ${getTypeBg(tx.type)}`}
+            className={`flex items-start gap-2.5 rounded-2xl p-2.5 md:gap-3 md:p-3 ${getTypeBg(tx.type)}`}
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-card text-lg">
+            <div className="glass flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-base md:h-10 md:w-10 md:text-lg">
               {tx.type === 'transfer' ? <ArrowLeftRight className="h-4 w-4 text-transfer" /> : cat.emoji}
             </div>
 

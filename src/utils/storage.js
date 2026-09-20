@@ -7,6 +7,7 @@ import {
 
 const STORAGE_KEY = 'expensomanaga_transactions'
 const INIT_KEY = 'expensomanaga_initialized'
+const MIGRATION_INTEREST_KEY = 'expensomanaga_mig_interest_savings'
 
 const SEED_ROWS = `Date,Description,Amount (MAD),Type
 2026-08-31,Transportation,5.0,Expense
@@ -67,7 +68,7 @@ export function parseCsv(text) {
     const accountCol = hasAccount ? parts[4]?.trim().toLowerCase() : null
 
     const category = normalizeCategory(description, type)
-    let account = accountCol || inferAccount(description, type)
+    let account = accountCol || inferAccount(description, type, category)
     if (accountCol === 'main account') account = 'main'
 
     let fromAccount = 'main'
@@ -119,10 +120,29 @@ export function downloadCsv(transactions, filename = 'transactions.csv') {
   URL.revokeObjectURL(url)
 }
 
+export function migrateTransactions(transactions) {
+  return transactions.map((tx) => {
+    const isInterest =
+      tx.category === 'interest' || tx.description?.toLowerCase().includes('interest')
+    if (isInterest && (tx.type === 'income' || tx.type === 'previous_balance')) {
+      return { ...tx, account: 'savings', category: 'interest' }
+    }
+    return tx
+  })
+}
+
 export function loadTransactions() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) return JSON.parse(raw)
+    if (raw) {
+      let data = JSON.parse(raw)
+      if (!localStorage.getItem(MIGRATION_INTEREST_KEY)) {
+        data = migrateTransactions(data)
+        saveTransactions(data)
+        localStorage.setItem(MIGRATION_INTEREST_KEY, '1')
+      }
+      return data
+    }
   } catch {
     /* ignore */
   }

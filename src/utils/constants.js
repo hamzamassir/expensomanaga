@@ -62,9 +62,9 @@ export function getTypeColor(type) {
 }
 
 export function getTypeBg(type) {
-  if (type === 'income' || type === 'previous_balance') return 'bg-income/10 border-income/30'
-  if (type === 'transfer') return 'bg-transfer/10 border-transfer/30'
-  return 'bg-expense/10 border-expense/30'
+  if (type === 'income' || type === 'previous_balance') return 'glass glass-income'
+  if (type === 'transfer') return 'glass glass-transfer'
+  return 'glass glass-expense'
 }
 
 export function formatMAD(amount) {
@@ -105,8 +105,17 @@ export function parseTransferAccounts(description) {
   return { fromAccount: 'main', toAccount: 'savings' }
 }
 
-export function inferAccount(description, type) {
+export function inferAccount(description, type, category) {
   const d = description.toLowerCase()
-  if (type === 'previous_balance' || d.includes('savings')) return 'savings'
+  if (type === 'previous_balance' || d.includes('initial balance')) return 'savings'
+  if (category === 'interest' || d.includes('interest')) return 'savings'
+  if (d.includes('salary')) return 'main'
   return 'main'
+}
+
+export function resolveAccountForTx({ description, type, category, account }) {
+  if (type === 'transfer') return account
+  const resolved = inferAccount(description, type, category ?? normalizeCategory(description, type))
+  if (category === 'interest' || description?.toLowerCase().includes('interest')) return 'savings'
+  return resolved
 }

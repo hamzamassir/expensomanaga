@@ -4,55 +4,56 @@ import { formatMAD } from '../utils/constants'
 export default function Dashboard({ monthSummary, balances, netWorth, expenseBreakdown }) {
   const cards = [
     {
-      label: 'Total Income',
+      label: 'Income',
       value: monthSummary.income,
       icon: TrendingUp,
       color: 'text-income',
-      bg: 'bg-income/10',
+      glass: 'glass-income',
     },
     {
-      label: 'Total Expenses',
+      label: 'Expenses',
       value: monthSummary.expenses,
       icon: TrendingDown,
       color: 'text-expense',
-      bg: 'bg-expense/10',
+      glass: 'glass-expense',
     },
     {
-      label: 'Net Savings',
+      label: 'Net',
       value: monthSummary.net,
       icon: PiggyBank,
       color: monthSummary.net >= 0 ? 'text-income' : 'text-expense',
-      bg: monthSummary.net >= 0 ? 'bg-income/10' : 'bg-expense/10',
+      glass: monthSummary.net >= 0 ? 'glass-income' : 'glass-expense',
     },
   ]
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {cards.map(({ label, value, icon: Icon, color, bg }) => (
-          <div key={label} className={`rounded-2xl border border-border ${bg} p-4`}>
-            <div className="flex items-center justify-between">
-              <p className="text-xs uppercase tracking-wider text-muted">{label}</p>
-              <Icon className={`h-4 w-4 ${color}`} />
+    <div className="space-y-2.5 md:space-y-4">
+      <div className="grid grid-cols-3 gap-1.5 md:gap-3">
+        {cards.map(({ label, value, icon: Icon, color, glass }) => (
+          <div key={label} className={`glass ${glass} rounded-2xl p-2.5 md:p-4`}>
+            <div className="flex items-center justify-between gap-1">
+              <p className="text-[9px] uppercase tracking-wide text-muted md:text-xs">{label}</p>
+              <Icon className={`h-3.5 w-3.5 shrink-0 md:h-4 md:w-4 ${color}`} />
             </div>
-            <p className={`mt-2 text-2xl font-bold ${color}`}>{formatMAD(value)}</p>
-            <p className="mt-1 text-xs text-muted">This month</p>
+            <p className={`mt-1 text-sm font-bold tabular-nums md:mt-2 md:text-2xl ${color}`}>
+              {formatMAD(value)}
+            </p>
           </div>
         ))}
       </div>
 
-      <div className="rounded-2xl border border-border bg-card p-4">
-        <h3 className="text-sm font-semibold">Account Balances</h3>
-        <div className="mt-3 space-y-2">
+      <div className="glass rounded-2xl p-3 md:p-4">
+        <h3 className="text-sm font-semibold">Balances</h3>
+        <div className="mt-2 space-y-1.5 md:mt-3 md:space-y-2">
           {Object.entries(balances).map(([id, amount]) => (
-            <div key={id} className="flex items-center justify-between text-sm">
-              <span className="capitalize text-muted">{id.replace('_', ' ')}</span>
-              <span className={amount >= 0 ? 'text-income font-medium' : 'text-expense font-medium'}>
+            <div key={id} className="flex items-center justify-between text-xs md:text-sm">
+              <span className="capitalize text-muted">{id}</span>
+              <span className={amount >= 0 ? 'font-medium text-income' : 'font-medium text-expense'}>
                 {formatMAD(amount)}
               </span>
             </div>
           ))}
-          <div className="border-t border-border pt-2 flex items-center justify-between font-semibold">
+          <div className="flex items-center justify-between border-t border-white/10 pt-1.5 text-sm font-semibold md:pt-2">
             <span>Net Worth</span>
             <span className="text-income">{formatMAD(netWorth)}</span>
           </div>
@@ -60,18 +61,18 @@ export default function Dashboard({ monthSummary, balances, netWorth, expenseBre
       </div>
 
       {expenseBreakdown.length > 0 && (
-        <div className="rounded-2xl border border-border bg-card p-4">
-          <h3 className="text-sm font-semibold mb-3">Top Spending Categories</h3>
-          <div className="space-y-3">
+        <div className="glass rounded-2xl p-3 md:p-4">
+          <h3 className="mb-2 text-sm font-semibold md:mb-3">Top Categories</h3>
+          <div className="space-y-2 md:space-y-3">
             {expenseBreakdown.slice(0, 5).map(({ category, total, pct, emoji }) => (
               <div key={category}>
-                <div className="mb-1 flex justify-between text-sm">
-                  <span>
+                <div className="mb-1 flex justify-between text-xs md:text-sm">
+                  <span className="truncate pr-2">
                     {emoji} {category}
                   </span>
-                  <span className="text-muted">{formatMAD(total)}</span>
+                  <span className="shrink-0 text-muted tabular-nums">{formatMAD(total)}</span>
                 </div>
-                <div className="h-2 overflow-hidden rounded-full bg-border">
+                <div className="h-1.5 overflow-hidden rounded-full bg-white/10 md:h-2">
                   <div
                     className="h-full rounded-full bg-expense/70 transition-all"
                     style={{ width: `${pct}%` }}

@@ -6,6 +6,7 @@ import {
   TRANSACTION_TYPES,
   QUICK_PRESETS,
   parseTransferAccounts,
+  inferAccount,
 } from '../utils/constants'
 
 const emptyForm = () => ({
@@ -19,6 +20,12 @@ const emptyForm = () => ({
   toAccount: 'savings',
 })
 
+function autoAccount(type, category, description) {
+  if (type === 'transfer') return null
+  if (type === 'previous_balance') return 'savings'
+  return inferAccount(description, type, category)
+}
+
 export default function TransactionForm({ onAdd, onQuickAdd }) {
   const [form, setForm] = useState(emptyForm)
   const [open, setOpen] = useState(false)
@@ -26,25 +33,50 @@ export default function TransactionForm({ onAdd, onQuickAdd }) {
   const set = (key, value) => {
     setForm((prev) => {
       const next = { ...prev, [key]: value }
+
       if (key === 'type') {
         if (value === 'transfer') next.category = 'transfer'
-        else if (value === 'previous_balance') next.category = 'previous_balance'
-        else if (value === 'income') next.category = 'salary'
+        else if (value === 'previous_balance') {
+          next.category = 'previous_balance'
+          next.account = 'savings'
+        } else if (value === 'income') {
+          next.category = 'salary'
+          next.account = 'main'
+        }
       }
-      if (key === 'description' && prev.type === 'transfer') {
-        const parsed = parseTransferAccounts(value)
-        next.fromAccount = parsed.fromAccount
-        next.toAccount = parsed.toAccount
-        next.account = parsed.fromAccount
+
+      if (key === 'category') {
+        const acct = autoAccount(next.type, value, next.description)
+        if (acct) next.account = acct
       }
+
+      if (key === 'description') {
+        if (prev.type === 'transfer') {
+          const parsed = parseTransferAccounts(value)
+          next.fromAccount = parsed.fromAccount
+          next.toAccount = parsed.toAccount
+          next.account = parsed.fromAccount
+        } else {
+          const acct = autoAccount(next.type, next.category, value)
+          if (acct) next.account = acct
+        }
+      }
+
       return next
     })
   }
+
+  const interestLocked = form.category === 'interest' || form.description.toLowerCase().includes('interest')
 
   const submit = (e) => {
     e.preventDefault()
     const amount = parseFloat(form.amount)
     if (!form.description || Number.isNaN(amount) || amount <= 0) return
+
+    const account =
+      form.type === 'transfer'
+        ? form.fromAccount
+        : autoAccount(form.type, form.category, form.description) ?? form.account
 
     onAdd({
       date: form.date,
@@ -52,7 +84,7 @@ export default function TransactionForm({ onAdd, onQuickAdd }) {
       amount,
       type: form.type,
       category: form.category,
-      account: form.type === 'transfer' ? form.fromAccount : form.account,
+      account,
       fromAccount: form.fromAccount,
       toAccount: form.toAccount,
     })
@@ -61,17 +93,17 @@ export default function TransactionForm({ onAdd, onQuickAdd }) {
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap gap-2">
+    <div className="space-y-2 md:space-y-3">
+      <div className="flex gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {QUICK_PRESETS.map((preset) => (
           <button
             key={preset.label}
             type="button"
             onClick={() => onQuickAdd(preset)}
-            className="flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium transition hover:border-income/40 hover:bg-income/5 active:scale-95"
+            className="glass-subtle flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-medium transition active:scale-95 hover:glass-active md:px-3 md:text-xs"
           >
             <Zap className="h-3 w-3 text-income" />
-            {preset.emoji} {preset.label} {preset.amount} MAD
+            {preset.emoji} {preset.label}
           </button>
         ))}
       </div>
@@ -80,33 +112,30 @@ export default function TransactionForm({ onAdd, onQuickAdd }) {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-card py-3 text-sm font-medium text-muted transition hover:border-income/40 hover:text-white"
+          className="glass-subtle flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-white/15 py-2.5 text-sm font-medium text-muted transition hover:glass-active hover:text-white md:py-3"
         >
           <Plus className="h-4 w-4" />
           Add transaction
         </button>
       ) : (
-        <form
-          onSubmit={submit}
-          className="rounded-2xl border border-border bg-card p-4 space-y-3"
-        >
+        <form onSubmit={submit} className="glass rounded-2xl p-3 space-y-2.5 md:p-4 md:space-y-3">
           <div className="grid grid-cols-2 gap-2">
-            <label className="space-y-1">
-              <span className="text-xs text-muted">Date</span>
+            <label className="space-y-0.5">
+              <span className="text-[10px] text-muted md:text-xs">Date</span>
               <input
                 type="date"
                 required
                 value={form.date}
                 onChange={(e) => set('date', e.target.value)}
-                className="w-full rounded-xl border border-border bg-charcoal px-3 py-2 text-sm outline-none focus:border-white/20"
+                className="glass-input w-full rounded-xl px-2.5 py-2 text-sm outline-none focus:border-white/30 md:px-3"
               />
             </label>
-            <label className="space-y-1">
-              <span className="text-xs text-muted">Type</span>
+            <label className="space-y-0.5">
+              <span className="text-[10px] text-muted md:text-xs">Type</span>
               <select
                 value={form.type}
                 onChange={(e) => set('type', e.target.value)}
-                className="w-full rounded-xl border border-border bg-charcoal px-3 py-2 text-sm outline-none focus:border-white/20"
+                className="glass-input w-full rounded-xl px-2.5 py-2 text-sm outline-none focus:border-white/30 md:px-3"
               >
                 {TRANSACTION_TYPES.map((t) => (
                   <option key={t.id} value={t.id}>
@@ -117,20 +146,20 @@ export default function TransactionForm({ onAdd, onQuickAdd }) {
             </label>
           </div>
 
-          <label className="block space-y-1">
-            <span className="text-xs text-muted">Description</span>
+          <label className="block space-y-0.5">
+            <span className="text-[10px] text-muted md:text-xs">Description</span>
             <input
               required
               value={form.description}
               onChange={(e) => set('description', e.target.value)}
-              placeholder="e.g. Coffee, Main to Savings"
-              className="w-full rounded-xl border border-border bg-charcoal px-3 py-2 text-sm outline-none focus:border-white/20"
+              placeholder="Coffee, interest…"
+              className="glass-input w-full rounded-xl px-2.5 py-2 text-sm outline-none focus:border-white/30 md:px-3"
             />
           </label>
 
           <div className="grid grid-cols-2 gap-2">
-            <label className="space-y-1">
-              <span className="text-xs text-muted">Amount (MAD)</span>
+            <label className="space-y-0.5">
+              <span className="text-[10px] text-muted md:text-xs">Amount</span>
               <input
                 type="number"
                 required
@@ -138,15 +167,15 @@ export default function TransactionForm({ onAdd, onQuickAdd }) {
                 step="0.01"
                 value={form.amount}
                 onChange={(e) => set('amount', e.target.value)}
-                className="w-full rounded-xl border border-border bg-charcoal px-3 py-2 text-sm outline-none focus:border-white/20"
+                className="glass-input w-full rounded-xl px-2.5 py-2 text-sm outline-none focus:border-white/30 md:px-3"
               />
             </label>
-            <label className="space-y-1">
-              <span className="text-xs text-muted">Category</span>
+            <label className="space-y-0.5">
+              <span className="text-[10px] text-muted md:text-xs">Category</span>
               <select
                 value={form.category}
                 onChange={(e) => set('category', e.target.value)}
-                className="w-full rounded-xl border border-border bg-charcoal px-3 py-2 text-sm outline-none focus:border-white/20"
+                className="glass-input w-full rounded-xl px-2.5 py-2 text-sm outline-none focus:border-white/30 md:px-3"
               >
                 {CATEGORIES.filter(
                   (c) =>
@@ -166,12 +195,12 @@ export default function TransactionForm({ onAdd, onQuickAdd }) {
 
           {form.type === 'transfer' ? (
             <div className="grid grid-cols-2 gap-2">
-              <label className="space-y-1">
-                <span className="text-xs text-muted">From</span>
+              <label className="space-y-0.5">
+                <span className="text-[10px] text-muted md:text-xs">From</span>
                 <select
                   value={form.fromAccount}
                   onChange={(e) => set('fromAccount', e.target.value)}
-                  className="w-full rounded-xl border border-border bg-charcoal px-3 py-2 text-sm outline-none focus:border-white/20"
+                  className="glass-input w-full rounded-xl px-2.5 py-2 text-sm outline-none md:px-3"
                 >
                   {ACCOUNTS.map((a) => (
                     <option key={a.id} value={a.id}>
@@ -180,12 +209,12 @@ export default function TransactionForm({ onAdd, onQuickAdd }) {
                   ))}
                 </select>
               </label>
-              <label className="space-y-1">
-                <span className="text-xs text-muted">To</span>
+              <label className="space-y-0.5">
+                <span className="text-[10px] text-muted md:text-xs">To</span>
                 <select
                   value={form.toAccount}
                   onChange={(e) => set('toAccount', e.target.value)}
-                  className="w-full rounded-xl border border-border bg-charcoal px-3 py-2 text-sm outline-none focus:border-white/20"
+                  className="glass-input w-full rounded-xl px-2.5 py-2 text-sm outline-none md:px-3"
                 >
                   {ACCOUNTS.map((a) => (
                     <option key={a.id} value={a.id}>
@@ -196,12 +225,15 @@ export default function TransactionForm({ onAdd, onQuickAdd }) {
               </label>
             </div>
           ) : (
-            <label className="block space-y-1">
-              <span className="text-xs text-muted">Account</span>
+            <label className="block space-y-0.5">
+              <span className="text-[10px] text-muted md:text-xs">
+                Account {interestLocked && '· interest → Savings'}
+              </span>
               <select
-                value={form.account}
+                value={interestLocked ? 'savings' : form.account}
+                disabled={interestLocked}
                 onChange={(e) => set('account', e.target.value)}
-                className="w-full rounded-xl border border-border bg-charcoal px-3 py-2 text-sm outline-none focus:border-white/20"
+                className="glass-input w-full rounded-xl px-2.5 py-2 text-sm outline-none disabled:opacity-70 md:px-3"
               >
                 {ACCOUNTS.map((a) => (
                   <option key={a.id} value={a.id}>
@@ -212,20 +244,20 @@ export default function TransactionForm({ onAdd, onQuickAdd }) {
             </label>
           )}
 
-          <div className="flex gap-2 pt-1">
+          <div className="flex gap-2 pt-0.5">
             <button
               type="button"
               onClick={() => {
                 setOpen(false)
                 setForm(emptyForm())
               }}
-              className="flex-1 rounded-xl border border-border py-2.5 text-sm text-muted hover:text-white"
+              className="glass-subtle flex-1 rounded-xl py-2 text-sm text-muted hover:text-white md:py-2.5"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 rounded-xl bg-income py-2.5 text-sm font-semibold text-black hover:bg-income/90"
+              className="flex-1 rounded-xl bg-income py-2 text-sm font-semibold text-black shadow-lg shadow-income/20 hover:bg-income/90 md:py-2.5"
             >
               Save
             </button>

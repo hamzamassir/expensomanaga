@@ -16,8 +16,8 @@ export default function MockAIUpload({ onParsed }) {
 
   return (
     <div
-      className={`rounded-2xl border-2 border-dashed p-4 transition ${
-        dragging ? 'border-transfer bg-transfer/5' : 'border-border bg-card'
+      className={`rounded-2xl border-2 border-dashed p-3 transition md:p-4 ${
+        dragging ? 'glass-transfer border-transfer/40' : 'glass-subtle border-white/15'
       }`}
       onDragOver={(e) => {
         e.preventDefault()
@@ -30,15 +30,14 @@ export default function MockAIUpload({ onParsed }) {
         processFile(e.dataTransfer.files?.[0])
       }}
     >
-      <div className="flex items-start gap-3">
-        <div className="rounded-xl bg-transfer/10 p-2">
-          <Sparkles className="h-5 w-5 text-transfer" />
+      <div className="flex items-start gap-2.5 md:gap-3">
+        <div className="glass-transfer rounded-xl p-1.5 md:p-2">
+          <Sparkles className="h-4 w-4 text-transfer md:h-5 md:w-5" />
         </div>
-        <div className="flex-1">
-          <h3 className="text-sm font-semibold">AI Screenshot Import (Demo)</h3>
-          <p className="mt-1 text-xs text-muted leading-relaxed">
-            Drop a banking app screenshot to simulate OCR parsing. Demo mode adds sample
-            transactions — no data leaves your browser.
+        <div className="min-w-0 flex-1">
+          <h3 className="text-sm font-semibold">AI Import (Demo)</h3>
+          <p className="mt-0.5 text-[11px] leading-snug text-muted md:text-xs">
+            Drop a banking screenshot — demo adds sample entries locally.
           </p>
         </div>
       </div>
@@ -55,12 +54,12 @@ export default function MockAIUpload({ onParsed }) {
         type="button"
         disabled={loading}
         onClick={() => inputRef.current?.click()}
-        className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-transfer/30 bg-transfer/10 py-2.5 text-sm font-medium text-transfer transition hover:bg-transfer/20 disabled:opacity-60"
+        className="glass-transfer mt-2 flex w-full items-center justify-center gap-2 rounded-xl py-2 text-sm font-medium text-transfer transition hover:glass-active disabled:opacity-60 md:mt-3 md:py-2.5"
       >
         {loading ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
-            Parsing screenshot…
+            Parsing…
           </>
         ) : (
           <>

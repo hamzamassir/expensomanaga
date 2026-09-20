@@ -7,7 +7,7 @@ import {
   computeMonthlySummary,
   filterTransactions,
 } from '../utils/storage'
-import { currentMonthKey } from '../utils/constants'
+import { currentMonthKey, resolveAccountForTx } from '../utils/constants'
 
 export function useTransactions() {
   const [transactions, setTransactions] = useState(() => ensureSeedData())
@@ -20,11 +20,13 @@ export function useTransactions() {
 
   const addTransaction = useCallback(
     (partial) => {
+      const account = resolveAccountForTx(partial)
       const tx = {
         id: uuidv4(),
         fromAccount: partial.fromAccount ?? partial.account ?? 'main',
         toAccount: partial.toAccount ?? 'savings',
         ...partial,
+        account,
       }
       persist([tx, ...transactions])
       return tx
