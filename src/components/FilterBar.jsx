@@ -1,7 +1,9 @@
 import RemixIcon from './icons/RemixIcon'
-import { CATEGORIES, TRANSACTION_TYPES } from '../utils/constants'
+import { useCategoriesContext } from '../context/CategoriesContext'
+import { TRANSACTION_TYPES } from '../utils/constants'
 
 export default function FilterBar({ filters, onChange, onClear }) {
+  const { allCategories } = useCategoriesContext()
   const set = (key, value) => onChange({ ...filters, [key]: value })
 
   const hasFilters =
@@ -19,7 +21,7 @@ export default function FilterBar({ filters, onChange, onClear }) {
           placeholder="Search…"
           value={filters.search}
           onChange={(e) => set('search', e.target.value)}
-          className="glass-input w-full rounded-xl py-2 pl-9 pr-9 text-sm outline-none focus:border-white/30 md:py-2.5 md:pl-10 md:pr-10"
+          className="glass-input w-full rounded-xl py-2 pl-9 pr-9 text-sm outline-none md:py-2.5 md:pl-10 md:pr-10"
         />
         {filters.search && (
           <button
@@ -39,7 +41,7 @@ export default function FilterBar({ filters, onChange, onClear }) {
           className="glass-input rounded-xl px-2 py-1.5 text-xs outline-none md:px-3 md:py-2 md:text-sm"
         >
           <option value="">Category</option>
-          {CATEGORIES.map((c) => (
+          {allCategories.map((c) => (
             <option key={c.id} value={c.id}>
               {c.label}
             </option>

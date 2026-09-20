@@ -65,8 +65,8 @@ export function useTransactions() {
   const balances = useMemo(() => computeBalances(transactions), [transactions])
   const netWorth = useMemo(() => Object.values(balances).reduce((s, v) => s + v, 0), [balances])
   const monthSummary = useMemo(
-    () => computeMonthlySummary(transactions, currentMonthKey()),
-    [transactions],
+    () => computeMonthlySummary(transactions, currentMonthKey(), activeAccount),
+    [transactions, activeAccount],
   )
 
   return {

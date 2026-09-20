@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import RemixIcon from './components/icons/RemixIcon'
 import { useTransactions } from './hooks/useTransactions'
 import { useGoals } from './hooks/useGoals'
+import { useCategories } from './hooks/useCategories'
+import { CategoriesContext } from './context/CategoriesContext'
 import AccountSwitcher from './components/AccountSwitcher'
 import Dashboard from './components/Dashboard'
 import TransactionForm from './components/TransactionForm'
@@ -10,9 +12,16 @@ import FilterBar from './components/FilterBar'
 import { MobileBottomNav, DesktopNav } from './components/BottomNav'
 import FinancialGoals, { GoalsSummary } from './components/FinancialGoals'
 import InstallPrompt from './components/InstallPrompt'
-import { ExpenseDonut, CashFlowBar, NetTrendLine } from './components/Charts'
-import { currentMonthKey, getCategoryMeta } from './utils/constants'
-import { downloadCsv, parseCsv, expenseByCategory, cashFlowByDay } from './utils/storage'
+import CategoryManager from './components/CategoryManager'
+import ConfirmDialog from './components/ConfirmDialog'
+import {
+  ExpenseDonut,
+  TopCategoriesBar,
+  MonthlyExpenseTrend,
+  IncomeVsExpenseChart,
+} from './components/Charts'
+import { currentMonthKey, ACCOUNT_MAP } from './utils/constants'
+import { expenseByCategory, monthlyExpenseTrend, downloadCsv, parseCsv } from './utils/storage'
 
 const defaultFilters = {
   search: '',
@@ -23,7 +32,7 @@ const defaultFilters = {
   dateTo: '',
 }
 
-export default function App() {
+function AppContent() {
   const {
     transactions,
     activeAccount,
@@ -44,10 +53,22 @@ export default function App() {
   const [filters, setFilters] = useState(defaultFilters)
   const [csvPaste, setCsvPaste] = useState('')
   const [toast, setToast] = useState(null)
+  const [confirm, setConfirm] = useState(null)
 
   const showToast = (msg) => {
     setToast(msg)
     setTimeout(() => setToast(null), 2500)
+  }
+
+  const requestConfirm = (opts) => {
+    setConfirm({
+      ...opts,
+      onConfirm: () => {
+        opts.onConfirm?.()
+        setConfirm(null)
+      },
+      onCancel: () => setConfirm(null),
+    })
   }
 
   const accountFilters = useMemo(
@@ -61,22 +82,28 @@ export default function App() {
   const filtered = useMemo(() => filter(accountFilters), [filter, accountFilters])
 
   const month = currentMonthKey()
+  const accountLabel =
+    activeAccount === 'all' ? 'All accounts' : ACCOUNT_MAP[activeAccount]?.name ?? activeAccount
+
   const breakdown = useMemo(() => {
-    const raw = expenseByCategory(transactions, month)
+    const raw = expenseByCategory(transactions, month, activeAccount)
     const total = raw.reduce((s, r) => s + r.total, 0) || 1
     return raw.map((r) => ({
       ...r,
       pct: (r.total / total) * 100,
       categoryId: r.category,
-      category: getCategoryMeta(r.category).label,
     }))
-  }, [transactions, month])
+  }, [transactions, month, activeAccount])
 
   const expenseChartData = useMemo(
-    () => expenseByCategory(transactions, month),
-    [transactions, month],
+    () => expenseByCategory(transactions, month, activeAccount),
+    [transactions, month, activeAccount],
   )
-  const cashFlowData = useMemo(() => cashFlowByDay(transactions, month), [transactions, month])
+
+  const monthlyTrend = useMemo(
+    () => monthlyExpenseTrend(transactions, 6, activeAccount),
+    [transactions, activeAccount],
+  )
 
   const goalsSummary = useMemo(
     () =>
@@ -92,13 +119,15 @@ export default function App() {
   )
 
   const handleQuickAdd = (preset) => {
+    const account =
+      activeAccount === 'all' || activeAccount === 'cash' ? 'main' : activeAccount
     addTransaction({
       date: new Date().toISOString().slice(0, 10),
       description: preset.description,
       amount: preset.amount,
       type: 'expense',
       category: preset.category,
-      account: activeAccount === 'all' || activeAccount === 'cash' ? 'main' : activeAccount,
+      account,
     })
     showToast(`${preset.label} logged`)
   }
@@ -119,12 +148,20 @@ export default function App() {
   }
 
   const resetData = () => {
-    if (!confirm('Reset all data and reload seed transactions?')) return
-    localStorage.removeItem('expensomanaga_transactions')
-    localStorage.removeItem('expensomanaga_initialized')
-    localStorage.removeItem('expensomanaga_mig_interest_savings')
-    localStorage.removeItem('expensomanaga_goals')
-    window.location.reload()
+    requestConfirm({
+      title: 'Reset all data?',
+      message: 'This clears transactions, goals, and custom categories, then reloads seed data.',
+      danger: true,
+      confirmLabel: 'Reset',
+      onConfirm: () => {
+        localStorage.removeItem('expensomanaga_transactions')
+        localStorage.removeItem('expensomanaga_initialized')
+        localStorage.removeItem('expensomanaga_mig_interest_savings')
+        localStorage.removeItem('expensomanaga_goals')
+        localStorage.removeItem('expensomanaga_custom_categories')
+        window.location.reload()
+      },
+    })
   }
 
   return (
@@ -161,43 +198,68 @@ export default function App() {
                 netWorth={netWorth}
                 expenseBreakdown={breakdown}
                 goalsSummary={goalsSummary}
+                activeAccount={activeAccount}
               />
-              <TransactionForm onAdd={addTransaction} onQuickAdd={handleQuickAdd} />
+              <TransactionForm
+                onAdd={addTransaction}
+                onQuickAdd={handleQuickAdd}
+                activeAccount={activeAccount}
+              />
               <InstallPrompt />
             </>
           )}
 
           {tab === 'transactions' && (
             <>
-              <TransactionForm onAdd={addTransaction} onQuickAdd={handleQuickAdd} />
+              <TransactionForm
+                onAdd={addTransaction}
+                onQuickAdd={handleQuickAdd}
+                activeAccount={activeAccount}
+              />
               <FilterBar
                 filters={filters}
                 onChange={setFilters}
                 onClear={() => setFilters(defaultFilters)}
               />
-              <p className="text-[11px] text-muted">{filtered.length} transactions</p>
+              <p className="text-[11px] text-muted">
+                {filtered.length} transactions · {accountLabel}
+              </p>
               <TransactionList
                 transactions={filtered}
                 onUpdate={updateTransaction}
                 onDelete={deleteTransaction}
+                onRequestDelete={requestConfirm}
               />
             </>
           )}
 
           {tab === 'analytics' && (
-            <div className="grid gap-2.5 md:gap-4 lg:grid-cols-2">
-              <section className="glass rounded-2xl p-3 md:p-4">
-                <h2 className="mb-2 text-sm font-semibold md:mb-3">Expense Breakdown</h2>
-                <ExpenseDonut data={expenseChartData} />
-              </section>
-              <section className="glass rounded-2xl p-3 md:p-4">
-                <h2 className="mb-2 text-sm font-semibold md:mb-3">Daily Cash Flow</h2>
-                <CashFlowBar data={cashFlowData} />
-              </section>
-              <section className="glass rounded-2xl p-3 md:p-4 lg:col-span-2">
-                <h2 className="mb-2 text-sm font-semibold md:mb-3">Cumulative Net Trend</h2>
-                <NetTrendLine data={cashFlowData} />
-              </section>
+            <div className="space-y-2.5 md:space-y-4">
+              <p className="text-[11px] text-muted">
+                Charts for <span className="text-white/80">{accountLabel}</span> — change account in sidebar
+              </p>
+              <div className="grid gap-2.5 md:gap-4 lg:grid-cols-2">
+                <section className="glass rounded-2xl p-3 md:p-4">
+                  <h2 className="mb-1 text-sm font-semibold">Where money goes</h2>
+                  <p className="mb-2 text-[11px] text-muted">This month by category</p>
+                  <ExpenseDonut data={expenseChartData} />
+                </section>
+                <section className="glass rounded-2xl p-3 md:p-4">
+                  <h2 className="mb-1 text-sm font-semibold">Top spending</h2>
+                  <p className="mb-2 text-[11px] text-muted">Biggest categories this month</p>
+                  <TopCategoriesBar data={expenseChartData} />
+                </section>
+                <section className="glass rounded-2xl p-3 md:p-4">
+                  <h2 className="mb-1 text-sm font-semibold">Income vs expenses</h2>
+                  <p className="mb-2 text-[11px] text-muted">This month comparison</p>
+                  <IncomeVsExpenseChart summary={monthSummary} />
+                </section>
+                <section className="glass rounded-2xl p-3 md:p-4">
+                  <h2 className="mb-1 text-sm font-semibold">Last 6 months</h2>
+                  <p className="mb-2 text-[11px] text-muted">Are you spending more over time?</p>
+                  <MonthlyExpenseTrend data={monthlyTrend} />
+                </section>
+              </div>
             </div>
           )}
 
@@ -210,11 +272,14 @@ export default function App() {
               onAdd={addGoal}
               onDelete={deleteGoal}
               onUpdate={updateGoal}
+              onRequestDelete={requestConfirm}
             />
           )}
 
           {tab === 'data' && (
             <div className="space-y-2.5 md:space-y-4">
+              <CategoryManager onConfirm={requestConfirm} />
+
               <section className="glass rounded-2xl p-3 space-y-2 md:p-4 md:space-y-3">
                 <h2 className="text-sm font-semibold">Export</h2>
                 <p className="text-xs text-muted">{transactions.length} transactions</p>
@@ -266,7 +331,15 @@ export default function App() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleCsvImport(csvPaste, 'replace')}
+                    onClick={() =>
+                      requestConfirm({
+                        title: 'Replace all transactions?',
+                        message: 'This deletes every transaction and imports the CSV instead.',
+                        danger: true,
+                        confirmLabel: 'Replace all',
+                        onConfirm: () => handleCsvImport(csvPaste, 'replace'),
+                      })
+                    }
                     className="glass-expense flex-1 rounded-xl py-2 text-sm text-expense"
                   >
                     Replace
@@ -297,6 +370,25 @@ export default function App() {
           {toast}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!confirm}
+        title={confirm?.title}
+        message={confirm?.message}
+        confirmLabel={confirm?.confirmLabel}
+        danger={confirm?.danger}
+        onConfirm={confirm?.onConfirm}
+        onCancel={confirm?.onCancel}
+      />
     </div>
+  )
+}
+
+export default function App() {
+  const categories = useCategories()
+  return (
+    <CategoriesContext.Provider value={categories}>
+      <AppContent />
+    </CategoriesContext.Provider>
   )
 }

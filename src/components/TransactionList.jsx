@@ -1,15 +1,16 @@
 import { useState } from 'react'
 import RemixIcon from './icons/RemixIcon'
 import CategoryIcon from './icons/CategoryIcon'
+import { useCategoriesContext } from '../context/CategoriesContext'
 import {
   formatMAD,
   formatDate,
-  getCategoryMeta,
   getTypeColor,
   getTypeBg,
   amountPrefix,
   ACCOUNT_MAP,
 } from '../utils/constants'
+import { parseMoneyInput } from '../utils/money'
 
 function AmountDisplay({ tx }) {
   const prefix = amountPrefix(tx.type)
@@ -37,7 +38,10 @@ function EditRow({ tx, onSave, onCancel }) {
           type="number"
           step="0.01"
           value={draft.amount}
-          onChange={(e) => setDraft({ ...draft, amount: parseFloat(e.target.value) })}
+          onChange={(e) => {
+            const val = parseMoneyInput(e.target.value)
+            if (val != null) setDraft({ ...draft, amount: val })
+          }}
           className="glass-input rounded-lg px-2 py-1.5 text-sm"
         />
       </div>
@@ -62,7 +66,8 @@ function EditRow({ tx, onSave, onCancel }) {
   )
 }
 
-export default function TransactionList({ transactions, onUpdate, onDelete }) {
+export default function TransactionList({ transactions, onUpdate, onDelete, onRequestDelete }) {
+  const { getMeta } = useCategoriesContext()
   const [editingId, setEditingId] = useState(null)
 
   if (transactions.length === 0) {
@@ -76,7 +81,7 @@ export default function TransactionList({ transactions, onUpdate, onDelete }) {
   return (
     <div className="space-y-1.5 md:space-y-2">
       {transactions.map((tx) => {
-        const cat = getCategoryMeta(tx.category)
+        const cat = getMeta(tx.category)
         const isEditing = editingId === tx.id
 
         if (isEditing) {
@@ -113,12 +118,11 @@ export default function TransactionList({ transactions, onUpdate, onDelete }) {
                   <p className="mt-0.5 text-xs text-muted">
                     {formatDate(tx.date)} · {cat.label}
                   </p>
-                  {tx.type === 'transfer' && (
+                  {tx.type === 'transfer' ? (
                     <p className="text-xs text-transfer">
-                      {ACCOUNT_MAP[tx.fromAccount]?.name} to {ACCOUNT_MAP[tx.toAccount]?.name}
+                      {ACCOUNT_MAP[tx.fromAccount]?.name} → {ACCOUNT_MAP[tx.toAccount]?.name}
                     </p>
-                  )}
-                  {tx.type !== 'transfer' && (
+                  ) : (
                     <p className="text-xs text-muted">{ACCOUNT_MAP[tx.account]?.name ?? tx.account}</p>
                   )}
                 </div>
@@ -137,9 +141,15 @@ export default function TransactionList({ transactions, onUpdate, onDelete }) {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  if (confirm('Delete this transaction?')) onDelete(tx.id)
-                }}
+                onClick={() =>
+                  onRequestDelete({
+                    title: 'Delete transaction?',
+                    message: `"${tx.description}" (${formatMAD(tx.amount)}) will be removed.`,
+                    danger: true,
+                    confirmLabel: 'Delete',
+                    onConfirm: () => onDelete(tx.id),
+                  })
+                }
                 className="rounded-lg p-1.5 text-muted hover:bg-expense/10 hover:text-expense"
                 aria-label="Delete"
               >

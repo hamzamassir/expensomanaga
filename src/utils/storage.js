@@ -4,6 +4,7 @@ import {
   parseTransferAccounts,
   inferAccount,
 } from './constants'
+import { txBelongsToAccount } from './accounts'
 
 const STORAGE_KEY = 'expensomanaga_transactions'
 const INIT_KEY = 'expensomanaga_initialized'
@@ -184,12 +185,13 @@ export function computeBalances(transactions) {
   return sorted.reduce(applyTransactionToBalances, balances)
 }
 
-export function computeMonthlySummary(transactions, month) {
+export function computeMonthlySummary(transactions, month, accountId = 'all') {
   let income = 0
   let expenses = 0
 
   for (const tx of transactions) {
     if (monthKey(tx.date) !== month) continue
+    if (!txBelongsToAccount(tx, accountId)) continue
     if (tx.type === 'income' || tx.type === 'previous_balance') income += tx.amount
     if (tx.type === 'expense') expenses += tx.amount
   }
@@ -197,11 +199,12 @@ export function computeMonthlySummary(transactions, month) {
   return { income, expenses, net: income - expenses }
 }
 
-export function expenseByCategory(transactions, month = null) {
+export function expenseByCategory(transactions, month = null, accountId = 'all') {
   const map = {}
   for (const tx of transactions) {
     if (tx.type !== 'expense') continue
     if (month && monthKey(tx.date) !== month) continue
+    if (!txBelongsToAccount(tx, accountId)) continue
     map[tx.category] = (map[tx.category] ?? 0) + tx.amount
   }
   return Object.entries(map)
@@ -209,10 +212,35 @@ export function expenseByCategory(transactions, month = null) {
     .sort((a, b) => b.total - a.total)
 }
 
-export function cashFlowByDay(transactions, month = null) {
+export function monthlyExpenseTrend(transactions, monthsBack = 6, accountId = 'all') {
+  const result = []
+  const now = new Date()
+
+  for (let i = monthsBack - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    const label = d.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' })
+    let expenses = 0
+    let income = 0
+
+    for (const tx of transactions) {
+      if (monthKey(tx.date) !== key) continue
+      if (!txBelongsToAccount(tx, accountId)) continue
+      if (tx.type === 'expense') expenses += tx.amount
+      if (tx.type === 'income' || tx.type === 'previous_balance') income += tx.amount
+    }
+
+    result.push({ month: key, label, expenses, income, net: income - expenses })
+  }
+
+  return result
+}
+
+export function cashFlowByDay(transactions, month = null, accountId = 'all') {
   const map = {}
   for (const tx of transactions) {
     if (month && monthKey(tx.date) !== month) continue
+    if (!txBelongsToAccount(tx, accountId)) continue
     if (!map[tx.date]) map[tx.date] = { income: 0, expense: 0 }
     if (tx.type === 'income' || tx.type === 'previous_balance') map[tx.date].income += tx.amount
     if (tx.type === 'expense') map[tx.date].expense += tx.amount
@@ -235,7 +263,7 @@ export function filterTransactions(transactions, filters) {
     if (q && !tx.description.toLowerCase().includes(q) && !tx.category.includes(q)) return false
     if (category && tx.category !== category) return false
     if (type && tx.type !== type) return false
-    if (account && tx.account !== account && tx.fromAccount !== account && tx.toAccount !== account) return false
+    if (account && !txBelongsToAccount(tx, account)) return false
     if (dateFrom && tx.date < dateFrom) return false
     if (dateTo && tx.date > dateTo) return false
     return true

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import RemixIcon from './icons/RemixIcon'
 import CategoryIcon from './icons/CategoryIcon'
 import { formatMAD } from '../utils/constants'
+import { parseMoneyInput } from '../utils/money'
 import { computeGoalProgress, GOAL_TRACKERS } from '../hooks/useGoals'
 
 function GoalCard({ goal, progress, onDelete, onUpdateSaved, compact = false }) {
@@ -17,9 +18,7 @@ function GoalCard({ goal, progress, onDelete, onUpdateSaved, compact = false }) 
         {!compact && (
           <button
             type="button"
-            onClick={() => {
-              if (confirm('Delete this goal?')) onDelete(goal.id)
-            }}
+            onClick={() => onDelete(goal.id)}
             className="rounded-lg p-1.5 text-muted hover:bg-expense/10 hover:text-expense"
             aria-label="Delete goal"
           >
@@ -65,9 +64,13 @@ function GoalCard({ goal, progress, onDelete, onUpdateSaved, compact = false }) 
           <input
             type="number"
             min="0"
-            step="100"
+            step="1"
+            inputMode="decimal"
             defaultValue={goal.savedAmount ?? 0}
-            onBlur={(e) => onUpdateSaved(goal.id, parseFloat(e.target.value) || 0)}
+            onBlur={(e) => {
+              const val = parseMoneyInput(e.target.value)
+              if (val != null) onUpdateSaved(goal.id, val)
+            }}
             className="glass-input flex-1 rounded-xl px-2 py-1.5 text-sm"
           />
           <span className="self-center text-xs text-muted">saved</span>
@@ -108,6 +111,7 @@ export default function FinancialGoals({
   onAdd,
   onDelete,
   onUpdate,
+  onRequestDelete,
 }) {
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({
@@ -128,8 +132,8 @@ export default function FinancialGoals({
 
   const submit = (e) => {
     e.preventDefault()
-    const target = parseFloat(form.target)
-    if (!form.name.trim() || Number.isNaN(target) || target <= 0) return
+    const target = parseMoneyInput(form.target)
+    if (!form.name.trim() || target == null || target <= 0) return
     onAdd({
       name: form.name.trim(),
       target,
@@ -176,7 +180,8 @@ export default function FinancialGoals({
                 type="number"
                 required
                 min="1"
-                step="100"
+                step="1"
+                inputMode="numeric"
                 value={form.target}
                 onChange={(e) => setForm({ ...form, target: e.target.value })}
                 className="glass-input w-full rounded-xl px-3 py-2 text-sm outline-none"
@@ -227,7 +232,15 @@ export default function FinancialGoals({
               key={goal.id}
               goal={goal}
               progress={progress}
-              onDelete={onDelete}
+              onDelete={(id) =>
+                onRequestDelete({
+                  title: 'Delete goal?',
+                  message: `"${goal.name}" will be permanently removed.`,
+                  danger: true,
+                  confirmLabel: 'Delete',
+                  onConfirm: () => onDelete(id),
+                })
+              }
               onUpdateSaved={(id, amount) => onUpdate(id, { savedAmount: amount })}
             />
           ))}

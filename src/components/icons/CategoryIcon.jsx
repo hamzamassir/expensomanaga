@@ -12,8 +12,21 @@ import {
   Flag,
   Coffee,
   Bus,
+  House,
+  Barbell,
+  Heart,
+  GraduationCap,
+  FilmStrip,
+  ShoppingCart,
+  TShirt,
+  GameController,
+  Airplane,
+  Book,
+  PiggyBank,
+  FirstAid,
+  Dog,
 } from '@phosphor-icons/react'
-import { getCategoryMeta } from '../../utils/constants'
+import { useCategoriesContext } from '../../context/CategoriesContext'
 
 const PHOSPHOR_MAP = {
   Car,
@@ -29,6 +42,24 @@ const PHOSPHOR_MAP = {
   Flag,
   Coffee,
   Bus,
+  House,
+  Barbell,
+  Heart,
+  GraduationCap,
+  FilmStrip,
+  ShoppingCart,
+  TShirt,
+  GameController,
+  Airplane,
+  Book,
+  PiggyBank,
+  FirstAid,
+  Dog,
+}
+
+export function PhosphorGlyph({ name, size = 20, weight = 'duotone', className = 'text-white/90' }) {
+  const Icon = PHOSPHOR_MAP[name] ?? Package
+  return <Icon size={size} weight={weight} className={className} aria-hidden="true" />
 }
 
 export default function CategoryIcon({
@@ -37,11 +68,13 @@ export default function CategoryIcon({
   weight = 'duotone',
   className = 'text-white/90',
 }) {
-  const meta = getCategoryMeta(categoryId)
-  const Icon = PHOSPHOR_MAP[meta.phosphor] ?? Package
-  return <Icon size={size} weight={weight} className={className} aria-hidden="true" />
+  const { getMeta } = useCategoriesContext()
+  const meta = getMeta(categoryId)
+  return <PhosphorGlyph name={meta.phosphor} size={size} weight={weight} className={className} />
 }
 
 export function PresetCategoryIcon({ categoryId, size = 14, className = 'text-income' }) {
   return <CategoryIcon categoryId={categoryId} size={size} className={className} weight="fill" />
 }
+
+export { PHOSPHOR_MAP }

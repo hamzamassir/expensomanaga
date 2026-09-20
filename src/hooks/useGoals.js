@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { v4 as uuidv4 } from 'uuid'
+import { roundMoney, parseMoneyInput } from '../utils/money'
 
 const GOALS_KEY = 'expensomanaga_goals'
 
@@ -29,14 +29,15 @@ export function computeGoalProgress(goal, { balances, netWorth, monthSummary }) 
   if (goal.track === 'savings') current = Math.max(0, balances.savings ?? 0)
   else if (goal.track === 'net_worth') current = Math.max(0, netWorth ?? 0)
   else if (goal.track === 'monthly_net') current = Math.max(0, monthSummary?.net ?? 0)
-  else current = Math.max(0, goal.savedAmount ?? 0)
+  else current = Math.max(0, roundMoney(goal.savedAmount ?? 0))
 
-  const target = Number(goal.target) || 1
+  const target = roundMoney(goal.target) || 1
+  current = roundMoney(current)
   const pct = Math.min(100, (current / target) * 100)
   return {
     current,
     pct,
-    remaining: Math.max(0, target - current),
+    remaining: roundMoney(Math.max(0, target - current)),
     complete: current >= target,
   }
 }
@@ -52,12 +53,12 @@ export function useGoals() {
   const addGoal = useCallback(
     (partial) => {
       const goal = {
-        id: uuidv4(),
+        id: crypto.randomUUID?.() ?? String(Date.now()),
         name: partial.name,
-        target: Number(partial.target),
+        target: roundMoney(partial.target),
         track: partial.track ?? 'savings',
         deadline: partial.deadline || null,
-        savedAmount: Number(partial.savedAmount) || 0,
+        savedAmount: roundMoney(partial.savedAmount ?? 0),
         createdAt: new Date().toISOString().slice(0, 10),
       }
       persist([goal, ...goals])
@@ -68,7 +69,10 @@ export function useGoals() {
 
   const updateGoal = useCallback(
     (id, updates) => {
-      persist(goals.map((g) => (g.id === id ? { ...g, ...updates } : g)))
+      const next = { ...updates }
+      if ('target' in next) next.target = roundMoney(next.target)
+      if ('savedAmount' in next) next.savedAmount = roundMoney(next.savedAmount)
+      persist(goals.map((g) => (g.id === id ? { ...g, ...next } : g)))
     },
     [goals, persist],
   )
@@ -80,5 +84,5 @@ export function useGoals() {
     [goals, persist],
   )
 
-  return { goals, addGoal, updateGoal, deleteGoal }
+  return { goals, addGoal, updateGoal, deleteGoal, parseMoneyInput }
 }

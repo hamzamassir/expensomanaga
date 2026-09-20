@@ -4,26 +4,14 @@ import {
   CategoryScale,
   LinearScale,
   BarElement,
-  LineElement,
-  PointElement,
   Tooltip,
   Legend,
-  Filler,
 } from 'chart.js'
-import { Doughnut, Bar, Line } from 'react-chartjs-2'
-import { getCategoryMeta, formatMAD } from '../utils/constants'
+import { Doughnut, Bar } from 'react-chartjs-2'
+import { formatMAD } from '../utils/constants'
+import { useCategoriesContext } from '../context/CategoriesContext'
 
-ChartJS.register(
-  ArcElement,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  Tooltip,
-  Legend,
-  Filler,
-)
+ChartJS.register(ArcElement, CategoryScale, LinearScale, BarElement, Tooltip, Legend)
 
 const chartDefaults = {
   responsive: true,
@@ -35,15 +23,23 @@ const chartDefaults = {
   },
 }
 
-const COLORS = ['#f87171', '#fb923c', '#fbbf24', '#a78bfa', '#60a5fa', '#34d399', '#f472b6']
+const COLORS = ['#f87171', '#fb923c', '#fbbf24', '#a78bfa', '#60a5fa', '#34d399', '#f472b6', '#94a3b8']
+
+function EmptyChart({ message }) {
+  return (
+    <div className="flex h-48 items-center justify-center rounded-xl border border-dashed border-white/15 text-sm text-muted">
+      {message}
+    </div>
+  )
+}
 
 export function ExpenseDonut({ data }) {
-  if (!data.length) {
-    return <EmptyChart message="No expenses to chart yet." />
-  }
+  const { getMeta } = useCategoriesContext()
+
+  if (!data.length) return <EmptyChart message="No expenses for this account yet." />
 
   const chartData = {
-    labels: data.map((d) => getCategoryMeta(d.category).label),
+    labels: data.map((d) => getMeta(d.category).label),
     datasets: [
       {
         data: data.map((d) => d.total),
@@ -55,18 +51,14 @@ export function ExpenseDonut({ data }) {
   }
 
   return (
-    <div className="h-64">
+    <div className="h-56">
       <Doughnut
         data={chartData}
         options={{
           ...chartDefaults,
           plugins: {
             ...chartDefaults.plugins,
-            tooltip: {
-              callbacks: {
-                label: (ctx) => ` ${formatMAD(ctx.parsed)}`,
-              },
-            },
+            tooltip: { callbacks: { label: (ctx) => ` ${formatMAD(ctx.parsed)}` } },
           },
         }}
       />
@@ -74,31 +66,69 @@ export function ExpenseDonut({ data }) {
   )
 }
 
-export function CashFlowBar({ data }) {
-  if (!data.length) {
-    return <EmptyChart message="No cash flow data for this period." />
-  }
+export function TopCategoriesBar({ data }) {
+  const { getMeta } = useCategoriesContext()
+  const top = data.slice(0, 5)
+
+  if (!top.length) return <EmptyChart message="No spending data yet." />
 
   const chartData = {
-    labels: data.map((d) => d.date.slice(5)),
+    labels: top.map((d) => getMeta(d.category).label),
     datasets: [
       {
-        label: 'Income',
-        data: data.map((d) => d.income),
-        backgroundColor: 'rgba(16, 185, 129, 0.7)',
-        borderRadius: 6,
-      },
-      {
-        label: 'Expenses',
-        data: data.map((d) => d.expense),
-        backgroundColor: 'rgba(248, 113, 113, 0.7)',
-        borderRadius: 6,
+        label: 'Spent',
+        data: top.map((d) => d.total),
+        backgroundColor: 'rgba(248, 113, 113, 0.75)',
+        borderRadius: 8,
       },
     ],
   }
 
   return (
-    <div className="h-64">
+    <div className="h-56">
+      <Bar
+        data={chartData}
+        options={{
+          indexAxis: 'y',
+          ...chartDefaults,
+          plugins: {
+            ...chartDefaults.plugins,
+            legend: { display: false },
+            tooltip: { callbacks: { label: (ctx) => ` ${formatMAD(ctx.parsed.x)}` } },
+          },
+          scales: {
+            x: { ticks: { color: '#9ca3af' }, grid: { color: '#2a2a2a' } },
+            y: { ticks: { color: '#9ca3af' }, grid: { display: false } },
+          },
+        }}
+      />
+    </div>
+  )
+}
+
+export function MonthlyExpenseTrend({ data }) {
+  if (!data.length) return <EmptyChart message="Add transactions to see monthly trends." />
+
+  const chartData = {
+    labels: data.map((d) => d.label),
+    datasets: [
+      {
+        label: 'Expenses',
+        data: data.map((d) => d.expenses),
+        backgroundColor: 'rgba(248, 113, 113, 0.75)',
+        borderRadius: 8,
+      },
+      {
+        label: 'Income',
+        data: data.map((d) => d.income),
+        backgroundColor: 'rgba(16, 185, 129, 0.75)',
+        borderRadius: 8,
+      },
+    ],
+  }
+
+  return (
+    <div className="h-56">
       <Bar
         data={chartData}
         options={{
@@ -113,53 +143,37 @@ export function CashFlowBar({ data }) {
   )
 }
 
-export function NetTrendLine({ data }) {
-  if (!data.length) {
-    return <EmptyChart message="Add more transactions to see trends." />
-  }
-
-  let running = 0
-  const cumulative = data.map((d) => {
-    running += d.net
-    return running
-  })
-
+export function IncomeVsExpenseChart({ summary }) {
   const chartData = {
-    labels: data.map((d) => d.date.slice(5)),
+    labels: ['This month'],
     datasets: [
       {
-        label: 'Cumulative Net',
-        data: cumulative,
-        borderColor: '#10b981',
-        backgroundColor: 'rgba(16, 185, 129, 0.15)',
-        fill: true,
-        tension: 0.35,
-        pointRadius: 3,
+        label: 'Income',
+        data: [summary.income],
+        backgroundColor: 'rgba(16, 185, 129, 0.8)',
+        borderRadius: 8,
+      },
+      {
+        label: 'Expenses',
+        data: [summary.expenses],
+        backgroundColor: 'rgba(248, 113, 113, 0.8)',
+        borderRadius: 8,
       },
     ],
   }
 
   return (
     <div className="h-56">
-      <Line
+      <Bar
         data={chartData}
         options={{
           ...chartDefaults,
-          plugins: { ...chartDefaults.plugins, legend: { display: false } },
           scales: {
-            x: { ticks: { color: '#9ca3af' }, grid: { color: '#2a2a2a' } },
+            x: { ticks: { color: '#9ca3af' }, grid: { display: false } },
             y: { ticks: { color: '#9ca3af' }, grid: { color: '#2a2a2a' } },
           },
         }}
       />
-    </div>
-  )
-}
-
-function EmptyChart({ message }) {
-  return (
-    <div className="flex h-48 items-center justify-center rounded-xl border border-dashed border-border text-sm text-muted">
-      {message}
     </div>
   )
 }
