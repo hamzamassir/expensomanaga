@@ -7,7 +7,6 @@ export function AccountIcon({ accountId, className = 'text-lg leading-none' }) {
     all: 'ri-pie-chart-2-line',
     main: 'ri-bank-line',
     savings: 'ri-safe-2-line',
-    cash: 'ri-money-dollar-circle-line',
   }
   return <RemixIcon name={icons[accountId] ?? 'ri-wallet-3-line'} className={className} />
 }

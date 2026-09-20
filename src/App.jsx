@@ -3,16 +3,19 @@ import RemixIcon from './components/icons/RemixIcon'
 import { useTransactions } from './hooks/useTransactions'
 import { useGoals } from './hooks/useGoals'
 import { useCategories } from './hooks/useCategories'
+import { useSettings } from './hooks/useSettings'
 import { CategoriesContext } from './context/CategoriesContext'
 import AccountSwitcher from './components/AccountSwitcher'
 import Dashboard from './components/Dashboard'
+import QuickExpense from './components/QuickExpense'
 import TransactionForm from './components/TransactionForm'
+import TransferPanel from './components/TransferPanel'
 import TransactionList from './components/TransactionList'
 import FilterBar from './components/FilterBar'
 import { MobileBottomNav, DesktopNav } from './components/BottomNav'
 import FinancialGoals, { GoalsSummary } from './components/FinancialGoals'
 import InstallPrompt from './components/InstallPrompt'
-import CategoryManager from './components/CategoryManager'
+import SettingsPanel from './components/SettingsPanel'
 import ConfirmDialog from './components/ConfirmDialog'
 import {
   ExpenseDonut,
@@ -48,8 +51,10 @@ function AppContent() {
   } = useTransactions()
 
   const { goals, addGoal, updateGoal, deleteGoal } = useGoals()
+  const { settings, setSettings } = useSettings()
 
   const [tab, setTab] = useState('home')
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [filters, setFilters] = useState(defaultFilters)
   const [csvPaste, setCsvPaste] = useState('')
   const [toast, setToast] = useState(null)
@@ -118,20 +123,6 @@ function AppContent() {
     [goals, balances, netWorth, monthSummary],
   )
 
-  const handleQuickAdd = (preset) => {
-    const account =
-      activeAccount === 'all' || activeAccount === 'cash' ? 'main' : activeAccount
-    addTransaction({
-      date: new Date().toISOString().slice(0, 10),
-      description: preset.description,
-      amount: preset.amount,
-      type: 'expense',
-      category: preset.category,
-      account,
-    })
-    showToast(`${preset.label} logged`)
-  }
-
   const handleCsvImport = (text, mode) => {
     try {
       const parsed = parseCsv(text)
@@ -157,6 +148,7 @@ function AppContent() {
         localStorage.removeItem('expensomanaga_transactions')
         localStorage.removeItem('expensomanaga_initialized')
         localStorage.removeItem('expensomanaga_mig_interest_savings')
+        localStorage.removeItem('expensomanaga_mig_no_cash')
         localStorage.removeItem('expensomanaga_goals')
         localStorage.removeItem('expensomanaga_custom_categories')
         window.location.reload()
@@ -173,8 +165,15 @@ function AppContent() {
           </div>
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-base font-bold tracking-tight md:text-lg">Expensomanaga</h1>
-            <p className="hidden text-[11px] text-muted md:block">Personal finance · local only</p>
           </div>
+          <button
+            type="button"
+            onClick={() => setSettingsOpen(true)}
+            className="glass-subtle rounded-xl p-2 text-muted transition hover:glass-active hover:text-white"
+            aria-label="Settings"
+          >
+            <RemixIcon name="ri-settings-3-line" className="text-lg" />
+          </button>
         </div>
       </header>
 
@@ -200,10 +199,11 @@ function AppContent() {
                 goalsSummary={goalsSummary}
                 activeAccount={activeAccount}
               />
-              <TransactionForm
+              <QuickExpense
+                transactions={transactions}
+                defaultAccount={settings.defaultExpenseAccount}
                 onAdd={addTransaction}
-                onQuickAdd={handleQuickAdd}
-                activeAccount={activeAccount}
+                onDone={(label) => showToast(`${label} logged`)}
               />
               <InstallPrompt />
             </>
@@ -212,9 +212,10 @@ function AppContent() {
           {tab === 'transactions' && (
             <>
               <TransactionForm
+                transactions={transactions}
+                defaultExpenseAccount={settings.defaultExpenseAccount}
                 onAdd={addTransaction}
-                onQuickAdd={handleQuickAdd}
-                activeAccount={activeAccount}
+                onDone={() => showToast('Saved')}
               />
               <FilterBar
                 filters={filters}
@@ -233,30 +234,30 @@ function AppContent() {
             </>
           )}
 
+          {tab === 'transfers' && (
+            <TransferPanel onAdd={addTransaction} onDone={() => showToast('Transfer saved')} />
+          )}
+
           {tab === 'analytics' && (
             <div className="space-y-2.5 md:space-y-4">
               <p className="text-[11px] text-muted">
-                Charts for <span className="text-white/80">{accountLabel}</span> — change account in sidebar
+                Charts for <span className="text-white/80">{accountLabel}</span>
               </p>
               <div className="grid gap-2.5 md:gap-4 lg:grid-cols-2">
                 <section className="glass rounded-2xl p-3 md:p-4">
                   <h2 className="mb-1 text-sm font-semibold">Where money goes</h2>
-                  <p className="mb-2 text-[11px] text-muted">This month by category</p>
                   <ExpenseDonut data={expenseChartData} />
                 </section>
                 <section className="glass rounded-2xl p-3 md:p-4">
                   <h2 className="mb-1 text-sm font-semibold">Top spending</h2>
-                  <p className="mb-2 text-[11px] text-muted">Biggest categories this month</p>
                   <TopCategoriesBar data={expenseChartData} />
                 </section>
                 <section className="glass rounded-2xl p-3 md:p-4">
                   <h2 className="mb-1 text-sm font-semibold">Income vs expenses</h2>
-                  <p className="mb-2 text-[11px] text-muted">This month comparison</p>
                   <IncomeVsExpenseChart summary={monthSummary} />
                 </section>
                 <section className="glass rounded-2xl p-3 md:p-4">
                   <h2 className="mb-1 text-sm font-semibold">Last 6 months</h2>
-                  <p className="mb-2 text-[11px] text-muted">Are you spending more over time?</p>
                   <MonthlyExpenseTrend data={monthlyTrend} />
                 </section>
               </div>
@@ -278,18 +279,15 @@ function AppContent() {
 
           {tab === 'data' && (
             <div className="space-y-2.5 md:space-y-4">
-              <CategoryManager onConfirm={requestConfirm} />
-
               <section className="glass rounded-2xl p-3 space-y-2 md:p-4 md:space-y-3">
                 <h2 className="text-sm font-semibold">Export</h2>
-                <p className="text-xs text-muted">{transactions.length} transactions</p>
                 <button
                   type="button"
                   onClick={() => {
                     downloadCsv(transactions)
                     showToast('CSV downloaded')
                   }}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-income py-2.5 text-sm font-semibold text-black shadow-lg shadow-income/20 hover:bg-income/90 md:w-auto md:px-4"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-income py-2.5 text-sm font-semibold text-black md:w-auto md:px-4"
                 >
                   <RemixIcon name="ri-download-2-line" />
                   Export CSV
@@ -298,9 +296,9 @@ function AppContent() {
 
               <section className="glass rounded-2xl p-3 space-y-2 md:p-4 md:space-y-3">
                 <h2 className="text-sm font-semibold">Import</h2>
-                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 py-4 text-sm text-muted transition hover:border-income/40 hover:text-white md:py-6">
+                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 py-4 text-sm text-muted hover:border-income/40">
                   <RemixIcon name="ri-upload-2-line" />
-                  Choose CSV file
+                  Choose CSV
                   <input
                     type="file"
                     accept=".csv,text/csv"
@@ -319,13 +317,13 @@ function AppContent() {
                   onChange={(e) => setCsvPaste(e.target.value)}
                   placeholder="Paste CSV…"
                   rows={4}
-                  className="glass-input w-full rounded-xl px-3 py-2 text-xs font-mono outline-none focus:border-white/30"
+                  className="glass-input w-full rounded-xl px-3 py-2 text-xs font-mono outline-none"
                 />
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => handleCsvImport(csvPaste, 'merge')}
-                    className="glass-subtle flex-1 rounded-xl py-2 text-sm hover:glass-active"
+                    className="glass-subtle flex-1 rounded-xl py-2 text-sm"
                   >
                     Merge
                   </button>
@@ -347,12 +345,11 @@ function AppContent() {
                 </div>
               </section>
 
-              <section className="glass glass-expense rounded-2xl p-3 space-y-2 md:p-4 md:space-y-3">
-                <h2 className="text-sm font-semibold text-expense">Reset</h2>
+              <section className="glass glass-expense rounded-2xl p-3 md:p-4">
                 <button
                   type="button"
                   onClick={resetData}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-expense/30 py-2 text-sm text-expense md:w-auto md:px-4"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-expense/30 py-2 text-sm text-expense"
                 >
                   <RemixIcon name="ri-refresh-line" />
                   Reset seed data
@@ -364,6 +361,14 @@ function AppContent() {
       </main>
 
       <MobileBottomNav active={tab} onChange={setTab} />
+
+      <SettingsPanel
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        settings={settings}
+        setSettings={setSettings}
+        onConfirm={requestConfirm}
+      />
 
       {toast && (
         <div className="fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom))] left-1/2 z-50 -translate-x-1/2 glass rounded-full px-4 py-1.5 text-xs shadow-xl md:bottom-6 md:text-sm">

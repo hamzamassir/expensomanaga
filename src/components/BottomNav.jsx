@@ -2,7 +2,8 @@ import RemixIcon from './icons/RemixIcon'
 
 const tabs = [
   { id: 'home', label: 'Home', icon: 'ri-home-4-line' },
-  { id: 'transactions', label: 'Txns', icon: 'ri-exchange-line' },
+  { id: 'transactions', label: 'Txns', icon: 'ri-list-check-2' },
+  { id: 'transfers', label: 'Move', icon: 'ri-arrow-left-right-line' },
   { id: 'analytics', label: 'Charts', icon: 'ri-bar-chart-grouped-line' },
   { id: 'goals', label: 'Goals', icon: 'ri-flag-line' },
   { id: 'data', label: 'Data', icon: 'ri-database-2-line' },
@@ -17,13 +18,13 @@ export function MobileBottomNav({ active, onChange }) {
             key={id}
             type="button"
             onClick={() => onChange(id)}
-            className={`flex flex-1 flex-col items-center gap-0.5 py-1.5 text-[9px] transition active:scale-95 ${
+            className={`flex flex-1 flex-col items-center gap-0.5 py-1.5 text-[8px] transition active:scale-95 ${
               active === id ? 'text-income' : 'text-muted'
             }`}
           >
             <RemixIcon
               name={icon}
-              className={`text-[1.15rem] leading-none ${
+              className={`text-[1.1rem] leading-none ${
                 active === id ? 'drop-shadow-[0_0_8px_rgba(16,185,129,0.45)]' : ''
               }`}
             />

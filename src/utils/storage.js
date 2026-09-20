@@ -9,6 +9,7 @@ import { txBelongsToAccount } from './accounts'
 const STORAGE_KEY = 'expensomanaga_transactions'
 const INIT_KEY = 'expensomanaga_initialized'
 const MIGRATION_INTEREST_KEY = 'expensomanaga_mig_interest_savings'
+const MIGRATION_NO_CASH_KEY = 'expensomanaga_mig_no_cash'
 
 const SEED_ROWS = `Date,Description,Amount (MAD),Type
 2026-08-31,Transportation,5.0,Expense
@@ -123,12 +124,16 @@ export function downloadCsv(transactions, filename = 'transactions.csv') {
 
 export function migrateTransactions(transactions) {
   return transactions.map((tx) => {
+    let next = { ...tx }
     const isInterest =
-      tx.category === 'interest' || tx.description?.toLowerCase().includes('interest')
-    if (isInterest && (tx.type === 'income' || tx.type === 'previous_balance')) {
-      return { ...tx, account: 'savings', category: 'interest' }
+      next.category === 'interest' || next.description?.toLowerCase().includes('interest')
+    if (isInterest && (next.type === 'income' || next.type === 'previous_balance')) {
+      next = { ...next, account: 'savings', category: 'interest' }
     }
-    return tx
+    if (next.account === 'cash') next.account = 'main'
+    if (next.fromAccount === 'cash') next.fromAccount = 'main'
+    if (next.toAccount === 'cash') next.toAccount = 'main'
+    return next
   })
 }
 
@@ -141,6 +146,11 @@ export function loadTransactions() {
         data = migrateTransactions(data)
         saveTransactions(data)
         localStorage.setItem(MIGRATION_INTEREST_KEY, '1')
+      }
+      if (!localStorage.getItem(MIGRATION_NO_CASH_KEY)) {
+        data = migrateTransactions(data)
+        saveTransactions(data)
+        localStorage.setItem(MIGRATION_NO_CASH_KEY, '1')
       }
       return data
     }
@@ -180,7 +190,7 @@ export function applyTransactionToBalances(balances, tx) {
 }
 
 export function computeBalances(transactions) {
-  const balances = { main: 0, savings: 0, cash: 0 }
+  const balances = { main: 0, savings: 0 }
   const sorted = [...transactions].sort((a, b) => a.date.localeCompare(b.date))
   return sorted.reduce(applyTransactionToBalances, balances)
 }
