@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Serve expensomanaga static build on X260 (Tailscale :8766)
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+PORT="${EXPENSO_PORT:-8766}"
+cd "$ROOT"
+
+if [[ ! -d dist ]]; then
+  npm ci
+  npm run build
+fi
+
+# Kill only the process bound to our port (never pkill uvicorn / other apps)
+OLD_PID="$(ss -tlnp 2>/dev/null | awk -v p=":$PORT" '$4 ~ p { gsub(/.*pid=/, "", $6); gsub(/,.*/, "", $6); print $6; exit }' || true)"
+if [[ -n "${OLD_PID:-}" ]]; then
+  kill "$OLD_PID" 2>/dev/null || true
+  sleep 1
+fi
+
+nohup ./node_modules/.bin/vite preview --host 0.0.0.0 --port "$PORT" \
+  >/tmp/expensomanaga.log 2>&1 &
+
+sleep 1
+curl -s -o /dev/null -w "HTTP %{http_code}\n" "http://127.0.0.1:$PORT/" || true
+echo "Expensomanaga → http://x260.tail07c06e.ts.net:$PORT/"

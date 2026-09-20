@@ -1,0 +1,33 @@
+Date,Description,Amount (MAD),Type
+2026-08-31,Transportation,5.0,Expense
+2026-08-31,Food,59.0,Expense
+2026-08-31,Main to Savings,7000.0,Transfer
+2026-08-31,interest,5.56,Income
+2026-08-31,Savings initial balance,3700.0,Previous Balance
+2026-08-31,Salary,9089.0,Income
+2026-08-31,internet,69.0,Expense
+2026-09-01,Transportation,5.0,Expense
+2026-09-01,Food,55.5,Expense
+2026-09-01,Family,10.0,Expense
+2026-09-02,Transportation,5.0,Expense
+2026-09-02,Food,10.0,Expense
+2026-09-02,Food,5.0,Expense
+2026-09-02,Transportation,5.0,Expense
+2026-09-04,gift,700.0,Expense
+2026-09-04,Food,255.0,Expense
+2026-09-05,Food,147.0,Expense
+2026-09-05,Transportation,36.0,Expense
+2026-09-08,Food,20.0,Expense
+2026-09-08,Food,10.0,Expense
+2026-09-08,Transportation,230.0,Expense
+2026-09-08,Food,20.0,Expense
+2026-09-08,Transportation,20.0,Expense
+2026-09-08,gift,215.0,Expense
+2026-09-08,Food,59.0,Expense
+2026-09-09,Transportation,10.0,Expense
+2026-09-09,Food,102.0,Expense
+2026-09-09,Savings to Main,700.0,Transfer
+2026-09-20,Food,650.0,Expense
+2026-09-20,Transportation,267.09,Expense
+2026-09-20,gift,1200.0,Expense
+2026-09-20,Savings to Main,2000.0,Transfer
