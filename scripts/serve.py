@@ -252,9 +252,6 @@ def main() -> None:
 
     store.init_db()
 
-    if not args.no_bot and os.environ.get("TELEGRAM_BOT_TOKEN"):
-        threading.Thread(target=run_bot, daemon=True, name="telegram-bot").start()
-
     if args.api_only:
         global ROOT
         ROOT = ""
@@ -265,7 +262,13 @@ def main() -> None:
     handler = ExpenseHandler
     httpd = ThreadingHTTPServer((args.host, args.port), handler)
     log.info("Expensomanaga API + static on http://%s:%s/", args.host, args.port)
-    httpd.serve_forever()
+
+    use_bot = not args.no_bot and bool(os.environ.get("TELEGRAM_BOT_TOKEN", "").strip())
+    if use_bot:
+        threading.Thread(target=httpd.serve_forever, daemon=True, name="http-server").start()
+        run_bot()
+    else:
+        httpd.serve_forever()
 
 
 if __name__ == "__main__":
