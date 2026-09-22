@@ -109,12 +109,13 @@ async def on_amount(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await message.reply_text("Send a valid amount, e.g. 55 or 12.50")
         return
 
-    settings = store.get_settings()
+    settings = await asyncio.to_thread(store.get_settings)
     account = settings.get("defaultExpenseAccount") or "main"
     label = pending["label"]
     account_label = "Savings" if account == "savings" else "Main"
 
-    store.create_transaction(
+    await asyncio.to_thread(
+        store.create_transaction,
         {
             "date": date.today().isoformat(),
             "description": label,
@@ -122,16 +123,31 @@ async def on_amount(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             "type": "expense",
             "category": pending["category"],
             "account": account,
-        }
+        },
     )
 
     context.user_data.pop(PENDING_KEY, None)
-    await message.reply_text(f"✅ Saved: {label} {amount:g} MAD ({account_label})")
-    await message.reply_text("Add another?", reply_markup=_category_keyboard())
+    text = f"Saved: {label} {amount:g} MAD ({account_label})"
+    try:
+        await message.reply_text(text, reply_markup=_category_keyboard())
+    except Exception as err:
+        log.exception("Failed to send Telegram confirmation")
+        try:
+            await message.reply_text(text)
+        except Exception:
+            log.exception("Retry confirmation also failed: %s", err)
 
 
 def build_application(token: str) -> Application:
-    app = Application.builder().token(token).build()
+    app = (
+        Application.builder()
+        .token(token)
+        .connect_timeout(30)
+        .read_timeout(30)
+        .write_timeout(30)
+        .pool_timeout(30)
+        .build()
+    )
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(on_category, pattern=r"^cat:"))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_amount))
