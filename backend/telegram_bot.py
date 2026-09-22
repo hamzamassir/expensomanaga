@@ -54,6 +54,17 @@ def _category_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(rows)
 
 
+def _after_save_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("Add another", callback_data="action:another"),
+                InlineKeyboardButton("Close", callback_data="action:close"),
+            ]
+        ]
+    )
+
+
 def _parse_amount(text: str) -> float | None:
     cleaned = text.strip().replace(",", ".")
     if not re.fullmatch(r"\d+(?:\.\d{1,2})?", cleaned):
@@ -72,6 +83,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "Pick a category:",
         reply_markup=_category_keyboard(),
     )
+
+
+async def close(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user = update.effective_user
+    if not user or not _is_allowed(user.id):
+        await update.effective_message.reply_text("Not authorized.")
+        return
+    context.user_data.pop(PENDING_KEY, None)
+    await update.effective_message.reply_text("Done. Send /start when you want to log again.")
 
 
 async def on_category(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -129,13 +149,34 @@ async def on_amount(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     context.user_data.pop(PENDING_KEY, None)
     text = f"Saved: {label} {amount:g} MAD ({account_label})"
     try:
-        await message.reply_text(text, reply_markup=_category_keyboard())
+        await message.reply_text(text, reply_markup=_after_save_keyboard())
     except Exception as err:
         log.exception("Failed to send Telegram confirmation")
         try:
             await message.reply_text(text)
         except Exception:
             log.exception("Retry confirmation also failed: %s", err)
+
+
+async def on_action(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    if not query or not query.data or not query.data.startswith("action:"):
+        return
+    await query.answer()
+    user = update.effective_user
+    if not user or not _is_allowed(user.id):
+        await query.edit_message_text("Not authorized.")
+        return
+
+    action = query.data.split(":", 1)[1]
+    context.user_data.pop(PENDING_KEY, None)
+
+    if action == "close":
+        await query.edit_message_text("Done. Send /start when you want to log again.")
+        return
+
+    if action == "another":
+        await query.edit_message_text("Pick a category:", reply_markup=_category_keyboard())
 
 
 def build_application(token: str) -> Application:
@@ -149,7 +190,9 @@ def build_application(token: str) -> Application:
         .build()
     )
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("close", close))
     app.add_handler(CallbackQueryHandler(on_category, pattern=r"^cat:"))
+    app.add_handler(CallbackQueryHandler(on_action, pattern=r"^action:"))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_amount))
     return app
 
