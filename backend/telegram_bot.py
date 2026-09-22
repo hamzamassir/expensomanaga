@@ -51,18 +51,8 @@ def _category_keyboard() -> InlineKeyboardMarkup:
             row = []
     if row:
         rows.append(row)
+    rows.append([InlineKeyboardButton("Close", callback_data="action:close")])
     return InlineKeyboardMarkup(rows)
-
-
-def _after_save_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        [
-            [
-                InlineKeyboardButton("Add another", callback_data="action:another"),
-                InlineKeyboardButton("Close", callback_data="action:close"),
-            ]
-        ]
-    )
 
 
 def _parse_amount(text: str) -> float | None:
@@ -149,7 +139,7 @@ async def on_amount(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     context.user_data.pop(PENDING_KEY, None)
     text = f"Saved: {label} {amount:g} MAD ({account_label})"
     try:
-        await message.reply_text(text, reply_markup=_after_save_keyboard())
+        await message.reply_text(text, reply_markup=_category_keyboard())
     except Exception as err:
         log.exception("Failed to send Telegram confirmation")
         try:
@@ -174,9 +164,6 @@ async def on_action(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if action == "close":
         await query.edit_message_text("Done. Send /start when you want to log again.")
         return
-
-    if action == "another":
-        await query.edit_message_text("Pick a category:", reply_markup=_category_keyboard())
 
 
 def build_application(token: str) -> Application:
