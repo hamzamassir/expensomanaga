@@ -25,6 +25,7 @@ import {
 } from './components/Charts'
 import { currentMonthKey, ACCOUNT_MAP } from './utils/constants'
 import { expenseByCategory, monthlyExpenseTrend, downloadCsv, parseCsv } from './utils/storage'
+import * as api from './utils/api'
 
 const defaultFilters = {
   search: '',
@@ -38,6 +39,8 @@ const defaultFilters = {
 function AppContent() {
   const {
     transactions,
+    loading,
+    error,
     activeAccount,
     setActiveAccount,
     addTransaction,
@@ -141,19 +144,34 @@ function AppContent() {
   const resetData = () => {
     requestConfirm({
       title: 'Reset all data?',
-      message: 'This clears transactions, goals, and custom categories, then reloads seed data.',
+      message: 'This clears transactions, goals, and custom categories on the server, then reloads seed data.',
       danger: true,
       confirmLabel: 'Reset',
-      onConfirm: () => {
-        localStorage.removeItem('expensomanaga_transactions')
-        localStorage.removeItem('expensomanaga_initialized')
-        localStorage.removeItem('expensomanaga_mig_interest_savings')
-        localStorage.removeItem('expensomanaga_mig_no_cash')
-        localStorage.removeItem('expensomanaga_goals')
-        localStorage.removeItem('expensomanaga_custom_categories')
+      onConfirm: async () => {
+        await api.resetAllData()
         window.location.reload()
       },
     })
+  }
+
+  if (loading) {
+    return (
+      <div className="app-bg flex min-h-dvh items-center justify-center text-white">
+        <div className="glass rounded-2xl px-6 py-4 text-sm text-muted">Loading your data…</div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="app-bg flex min-h-dvh items-center justify-center p-4 text-white">
+        <div className="glass glass-expense max-w-sm rounded-2xl p-4 text-center">
+          <p className="text-sm font-semibold text-expense">Cannot reach server</p>
+          <p className="mt-2 text-xs text-muted">{error}</p>
+          <p className="mt-3 text-[11px] text-muted">Make sure the backend is running on this host.</p>
+        </div>
+      </div>
+    )
   }
 
   return (

@@ -1,8 +1,6 @@
-import { useCallback, useMemo, useState } from 'react'
-import { v4 as uuidv4 } from 'uuid'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CATEGORIES as BUILTIN_CATEGORIES } from '../utils/constants'
-
-const STORAGE_KEY = 'expensomanaga_custom_categories'
+import * as api from '../utils/api'
 
 export const PHOSPHOR_ICON_OPTIONS = [
   { id: 'Car', label: 'Transport' },
@@ -31,58 +29,50 @@ export const PHOSPHOR_ICON_OPTIONS = [
   { id: 'Dog', label: 'Pets' },
 ]
 
-function loadCustom() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) return JSON.parse(raw)
-  } catch {
-    /* ignore */
-  }
-  return []
-}
-
-function saveCustom(categories) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(categories))
-}
-
 export function useCategories() {
-  const [custom, setCustom] = useState(() => loadCustom())
+  const [custom, setCustom] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  const persist = useCallback((next) => {
-    setCustom(next)
-    saveCustom(next)
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const data = await api.getCustomCategories()
+        if (!cancelled) setCustom(data)
+      } catch {
+        /* ignore */
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const allCategories = useMemo(() => [...BUILTIN_CATEGORIES, ...custom], [custom])
 
   const getMeta = useCallback(
     (categoryId) =>
-      allCategories.find((c) => c.id === categoryId) ?? BUILTIN_CATEGORIES.find((c) => c.id === 'other_expense'),
+      allCategories.find((c) => c.id === categoryId) ??
+      BUILTIN_CATEGORIES.find((c) => c.id === 'other_expense'),
     [allCategories],
   )
 
-  const addCategory = useCallback(
-    ({ label, type, phosphor }) => {
-      const id = `custom_${uuidv4().slice(0, 8)}`
-      const entry = {
-        id,
-        label: label.trim(),
-        phosphor: phosphor || 'Package',
-        type: type || 'expense',
-        custom: true,
-      }
-      persist([...custom, entry])
-      return entry
-    },
-    [custom, persist],
-  )
+  const addCategory = useCallback(async ({ label, type, phosphor }) => {
+    const entry = await api.createCustomCategory({
+      label: label.trim(),
+      phosphor: phosphor || 'Package',
+      type: type || 'expense',
+    })
+    setCustom((prev) => [...prev, entry])
+    return entry
+  }, [])
 
-  const deleteCategory = useCallback(
-    (id) => {
-      persist(custom.filter((c) => c.id !== id))
-    },
-    [custom, persist],
-  )
+  const deleteCategory = useCallback(async (id) => {
+    await api.deleteCustomCategory(id)
+    setCustom((prev) => prev.filter((c) => c.id !== id))
+  }, [])
 
   return {
     allCategories,
@@ -90,5 +80,6 @@ export function useCategories() {
     getMeta,
     addCategory,
     deleteCategory,
+    loading,
   }
 }

@@ -1,35 +1,35 @@
-import { useCallback, useState } from 'react'
-
-const SETTINGS_KEY = 'expensomanaga_settings'
+import { useCallback, useEffect, useState } from 'react'
+import * as api from '../utils/api'
 
 export const SETTINGS_DEFAULTS = {
   defaultExpenseAccount: 'main',
 }
 
-function loadSettings() {
-  try {
-    const raw = localStorage.getItem(SETTINGS_KEY)
-    if (raw) return { ...SETTINGS_DEFAULTS, ...JSON.parse(raw) }
-  } catch {
-    /* ignore */
-  }
-  return { ...SETTINGS_DEFAULTS }
-}
-
-function saveSettings(settings) {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
-}
-
 export function useSettings() {
-  const [settings, setSettingsState] = useState(() => loadSettings())
+  const [settings, setSettingsState] = useState(SETTINGS_DEFAULTS)
+  const [loading, setLoading] = useState(true)
 
-  const setSettings = useCallback((patch) => {
-    setSettingsState((prev) => {
-      const next = { ...prev, ...patch }
-      saveSettings(next)
-      return next
-    })
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const data = await api.getSettings()
+        if (!cancelled) setSettingsState({ ...SETTINGS_DEFAULTS, ...data })
+      } catch {
+        /* keep defaults */
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
-  return { settings, setSettings }
+  const setSettings = useCallback(async (patch) => {
+    const next = await api.saveSettings(patch)
+    setSettingsState((prev) => ({ ...prev, ...next }))
+  }, [])
+
+  return { settings, setSettings, loading }
 }

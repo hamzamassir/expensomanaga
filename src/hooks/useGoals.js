@@ -1,7 +1,6 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import * as api from '../utils/api'
 import { roundMoney, parseMoneyInput } from '../utils/money'
-
-const GOALS_KEY = 'expensomanaga_goals'
 
 export const GOAL_TRACKERS = [
   { id: 'savings', label: 'Savings balance' },
@@ -9,20 +8,6 @@ export const GOAL_TRACKERS = [
   { id: 'monthly_net', label: 'Monthly net savings' },
   { id: 'manual', label: 'Manual progress' },
 ]
-
-function loadGoals() {
-  try {
-    const raw = localStorage.getItem(GOALS_KEY)
-    if (raw) return JSON.parse(raw)
-  } catch {
-    /* ignore */
-  }
-  return []
-}
-
-function saveGoals(goals) {
-  localStorage.setItem(GOALS_KEY, JSON.stringify(goals))
-}
 
 export function computeGoalProgress(goal, { balances, netWorth, monthSummary }) {
   let current = 0
@@ -43,46 +28,52 @@ export function computeGoalProgress(goal, { balances, netWorth, monthSummary }) 
 }
 
 export function useGoals() {
-  const [goals, setGoals] = useState(() => loadGoals())
+  const [goals, setGoals] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  const persist = useCallback((next) => {
-    setGoals(next)
-    saveGoals(next)
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const data = await api.getGoals()
+        if (!cancelled) setGoals(data)
+      } catch {
+        /* ignore */
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
-  const addGoal = useCallback(
-    (partial) => {
-      const goal = {
-        id: crypto.randomUUID?.() ?? String(Date.now()),
-        name: partial.name,
-        target: roundMoney(partial.target),
-        track: partial.track ?? 'savings',
-        deadline: partial.deadline || null,
-        savedAmount: roundMoney(partial.savedAmount ?? 0),
-        createdAt: new Date().toISOString().slice(0, 10),
-      }
-      persist([goal, ...goals])
-      return goal
-    },
-    [goals, persist],
-  )
+  const addGoal = useCallback(async (partial) => {
+    const goal = await api.createGoal({
+      name: partial.name,
+      target: roundMoney(partial.target),
+      track: partial.track ?? 'savings',
+      deadline: partial.deadline || null,
+      savedAmount: roundMoney(partial.savedAmount ?? 0),
+      createdAt: new Date().toISOString().slice(0, 10),
+    })
+    setGoals((prev) => [goal, ...prev])
+    return goal
+  }, [])
 
-  const updateGoal = useCallback(
-    (id, updates) => {
-      const next = { ...updates }
-      if ('target' in next) next.target = roundMoney(next.target)
-      if ('savedAmount' in next) next.savedAmount = roundMoney(next.savedAmount)
-      persist(goals.map((g) => (g.id === id ? { ...g, ...next } : g)))
-    },
-    [goals, persist],
-  )
+  const updateGoal = useCallback(async (id, updates) => {
+    const next = { ...updates }
+    if ('target' in next) next.target = roundMoney(next.target)
+    if ('savedAmount' in next) next.savedAmount = roundMoney(next.savedAmount)
+    const goal = await api.updateGoal(id, next)
+    setGoals((prev) => prev.map((g) => (g.id === id ? goal : g)))
+    return goal
+  }, [])
 
-  const deleteGoal = useCallback(
-    (id) => {
-      persist(goals.filter((g) => g.id !== id))
-    },
-    [goals, persist],
-  )
+  const deleteGoal = useCallback(async (id) => {
+    await api.deleteGoal(id)
+    setGoals((prev) => prev.filter((g) => g.id !== id))
+  }, [])
 
-  return { goals, addGoal, updateGoal, deleteGoal, parseMoneyInput }
+  return { goals, addGoal, updateGoal, deleteGoal, parseMoneyInput, loading }
 }
