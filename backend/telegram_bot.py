@@ -1,6 +1,7 @@
 """Telegram bot — quick expense: category button → amount → save."""
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import re
@@ -143,5 +144,7 @@ def run_bot() -> None:
         log.info("TELEGRAM_BOT_TOKEN not set — Telegram bot disabled")
         return
     log.info("Starting Telegram bot…")
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     app = build_application(token)
     app.run_polling(drop_pending_updates=True)
