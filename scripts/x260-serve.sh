@@ -30,18 +30,24 @@ fi
 
 mkdir -p "${EXPENSO_DATA_DIR:-$ROOT/data}"
 
-OLD_PID="$(ss -tlnp 2>/dev/null | awk -v p=":$PORT" '$4 ~ p { gsub(/.*pid=/, "", $6); gsub(/,.*/, "", $6); print $6; exit }' || true)"
-if [[ -n "${OLD_PID:-}" ]]; then
-  kill "$OLD_PID" 2>/dev/null || true
-  sleep 1
+if systemctl --user is-enabled expensomanaga.service &>/dev/null; then
+  systemctl --user restart expensomanaga.service
+  sleep 2
+  systemctl --user status expensomanaga.service --no-pager | head -12 || true
+else
+  echo "Tip: bash scripts/install-systemd-user.sh for auto-start on reboot." >&2
+  OLD_PID="$(ss -tlnp 2>/dev/null | awk -v p=":$PORT" '$4 ~ p { gsub(/.*pid=/, "", $6); gsub(/,.*/, "", $6); print $6; exit }' || true)"
+  if [[ -n "${OLD_PID:-}" ]]; then
+    kill "$OLD_PID" 2>/dev/null || true
+    sleep 1
+  fi
+  pkill -f "scripts/serve.py --host.*--port $PORT" 2>/dev/null || true
+  sleep 0.5
+  nohup "$VENV/bin/python" "$ROOT/scripts/serve.py" --host 0.0.0.0 --port "$PORT" \
+    >/tmp/expensomanaga.log 2>&1 &
+  sleep 2
 fi
-pkill -f "scripts/serve.py --host.*--port $PORT" 2>/dev/null || true
-sleep 0.5
 
-nohup "$VENV/bin/python" "$ROOT/scripts/serve.py" --host 0.0.0.0 --port "$PORT" \
-  >/tmp/expensomanaga.log 2>&1 &
-
-sleep 2
 curl -s -o /dev/null -w "HTTP %{http_code}\n" "http://127.0.0.1:$PORT/" || true
 curl -s "http://127.0.0.1:$PORT/api/health" || true
 echo

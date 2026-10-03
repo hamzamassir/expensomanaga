@@ -1,0 +1,18 @@
+[Unit]
+Description=Expensomanaga (API, web app, Telegram bot)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/expensomanaga
+Environment=EXPENSO_DATA_DIR=%h/expensomanaga/data
+EnvironmentFile=-%h/expensomanaga/.env
+ExecStart=%h/expensomanaga/.venv/bin/python %h/expensomanaga/scripts/serve.py --host 0.0.0.0 --port 8766
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

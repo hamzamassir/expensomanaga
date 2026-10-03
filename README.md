@@ -44,10 +44,13 @@ npm run build
 git push
 # on X260:
 git pull --ff-only
-bash scripts/x260-serve.sh
+bash scripts/install-systemd-user.sh   # once: auto-start on reboot
+bash scripts/x260-serve.sh           # restart after updates
 ```
 
 Data lives in `data/expensomanaga.db` on the server (not in git).
+
+Logs: `journalctl --user -u expensomanaga -f`
 
 ## Features
 
