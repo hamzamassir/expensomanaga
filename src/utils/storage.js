@@ -5,6 +5,7 @@ import {
   inferAccount,
 } from './constants'
 import { txBelongsToAccount } from './accounts'
+import { roundMoney } from './money'
 
 const STORAGE_KEY = 'expensomanaga_transactions'
 const INIT_KEY = 'expensomanaga_initialized'
@@ -193,6 +194,68 @@ export function computeBalances(transactions) {
   const balances = { main: 0, savings: 0 }
   const sorted = [...transactions].sort((a, b) => a.date.localeCompare(b.date))
   return sorted.reduce(applyTransactionToBalances, balances)
+}
+
+export function isSalaryTransaction(tx) {
+  if (tx.type !== 'income') return false
+  if (tx.category === 'salary') return true
+  return tx.description?.toLowerCase().includes('salary') ?? false
+}
+
+/** Spending and savings since the most recent salary income. */
+export function computeSalaryCycleSummary(transactions, accountId = 'all') {
+  const salaries = transactions
+    .filter(isSalaryTransaction)
+    .sort((a, b) => b.date.localeCompare(a.date) || b.amount - a.amount)
+
+  if (!salaries.length) {
+    return null
+  }
+
+  const last = salaries[0]
+  const periodStart = last.date
+  let spent = 0
+  let toSavings = 0
+
+  for (const tx of transactions) {
+    if (tx.date < periodStart) continue
+    if (!txBelongsToAccount(tx, accountId)) continue
+    if (tx.type === 'expense') spent += tx.amount
+    if (
+      tx.type === 'transfer' &&
+      tx.fromAccount === 'main' &&
+      tx.toAccount === 'savings'
+    ) {
+      toSavings += tx.amount
+    }
+  }
+
+  const salaryAmount = roundMoney(last.amount)
+  spent = roundMoney(spent)
+  toSavings = roundMoney(toSavings)
+  const keptFromSalary = roundMoney(salaryAmount - spent)
+  const onMain = roundMoney(keptFromSalary - toSavings)
+
+  const start = new Date(periodStart + 'T12:00:00')
+  const next = new Date(start.getFullYear(), start.getMonth() + 1, start.getDate())
+  const nextSalaryDate = next.toISOString().slice(0, 10)
+  const today = new Date().toISOString().slice(0, 10)
+  const daysInPeriod = Math.max(
+    1,
+    Math.ceil((new Date(today + 'T12:00:00') - start) / (24 * 60 * 60 * 1000)),
+  )
+
+  return {
+    lastSalaryDate: periodStart,
+    lastSalaryAmount: salaryAmount,
+    nextSalaryDate,
+    daysInPeriod,
+    spent,
+    keptFromSalary,
+    toSavings,
+    onMain,
+    spendRate: roundMoney(spent / daysInPeriod),
+  }
 }
 
 export function computeMonthlySummary(transactions, month, accountId = 'all') {

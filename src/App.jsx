@@ -24,7 +24,13 @@ import {
   IncomeVsExpenseChart,
 } from './components/Charts'
 import { currentMonthKey, ACCOUNT_MAP } from './utils/constants'
-import { expenseByCategory, monthlyExpenseTrend, downloadCsv, parseCsv } from './utils/storage'
+import {
+  expenseByCategory,
+  monthlyExpenseTrend,
+  downloadCsv,
+  parseCsv,
+  computeSalaryCycleSummary,
+} from './utils/storage'
 import * as api from './utils/api'
 
 const defaultFilters = {
@@ -110,6 +116,11 @@ function AppContent() {
 
   const monthlyTrend = useMemo(
     () => monthlyExpenseTrend(transactions, 6, activeAccount),
+    [transactions, activeAccount],
+  )
+
+  const salaryCycle = useMemo(
+    () => computeSalaryCycleSummary(transactions, activeAccount),
     [transactions, activeAccount],
   )
 
@@ -211,6 +222,7 @@ function AppContent() {
             <>
               <Dashboard
                 monthSummary={monthSummary}
+                salaryCycle={salaryCycle}
                 balances={balances}
                 netWorth={netWorth}
                 expenseBreakdown={breakdown}

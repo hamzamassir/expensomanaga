@@ -1,10 +1,18 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import RemixIcon from './icons/RemixIcon'
 import { useCategoriesContext } from '../context/CategoriesContext'
 import { ACCOUNT_MAP, formatMAD } from '../utils/constants'
 
+function formatShortDate(iso) {
+  return new Date(iso + 'T12:00:00').toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+  })
+}
+
 export default function Dashboard({
   monthSummary,
+  salaryCycle,
   balances,
   netWorth,
   expenseBreakdown,
@@ -64,6 +72,49 @@ export default function Dashboard({
           </div>
         ))}
       </div>
+
+      {salaryCycle && (
+        <div className="glass rounded-2xl p-3 md:p-4">
+          <div className="mb-2 flex flex-wrap items-baseline justify-between gap-1">
+            <h3 className="text-sm font-semibold">Since last salary</h3>
+            <p className="text-[10px] text-muted md:text-[11px]">
+              {formatShortDate(salaryCycle.lastSalaryDate)} · {formatMAD(salaryCycle.lastSalaryAmount)}{' '}
+              <span className="text-white/40">→ ~{formatShortDate(salaryCycle.nextSalaryDate)}</span>
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3">
+            <div className="glass-expense rounded-xl p-2.5 md:p-3">
+              <p className="text-[9px] uppercase tracking-wide text-muted md:text-[10px]">Spent</p>
+              <p className="mt-1 text-sm font-bold tabular-nums text-expense md:text-lg">
+                {formatMAD(salaryCycle.spent)}
+              </p>
+            </div>
+            <div className="glass-income rounded-xl p-2.5 md:p-3">
+              <p className="text-[9px] uppercase tracking-wide text-muted md:text-[10px]">Kept</p>
+              <p className="mt-1 text-sm font-bold tabular-nums text-income md:text-lg">
+                {formatMAD(salaryCycle.keptFromSalary)}
+              </p>
+              <p className="mt-0.5 text-[9px] text-muted">salary − spent</p>
+            </div>
+            <div className="glass rounded-xl p-2.5 md:p-3">
+              <p className="text-[9px] uppercase tracking-wide text-muted md:text-[10px]">To savings</p>
+              <p className="mt-1 text-sm font-bold tabular-nums text-transfer md:text-lg">
+                {formatMAD(salaryCycle.toSavings)}
+              </p>
+            </div>
+            <div className="glass-subtle rounded-xl p-2.5 md:p-3">
+              <p className="text-[9px] uppercase tracking-wide text-muted md:text-[10px]">On main</p>
+              <p className="mt-1 text-sm font-bold tabular-nums md:text-lg">
+                {formatMAD(salaryCycle.onMain)}
+              </p>
+              <p className="mt-0.5 text-[9px] text-muted">not spent or moved</p>
+            </div>
+          </div>
+          <p className="mt-2 text-[10px] text-muted">
+            Day {salaryCycle.daysInPeriod} of pay period · ~{formatMAD(salaryCycle.spendRate)}/day
+          </p>
+        </div>
+      )}
 
       {goalsSummary}
 
