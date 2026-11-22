@@ -202,8 +202,11 @@ export function isSalaryTransaction(tx) {
   return tx.description?.toLowerCase().includes('salary') ?? false
 }
 
-/** Spending and savings since the most recent salary income. */
-export function computeSalaryCycleSummary(transactions, accountId = 'all') {
+/**
+ * Paycheck envelope since the latest salary: all spending counts against that salary,
+ * including expenses paid after Savings → Main top-ups (transfers are not spending).
+ */
+export function computeSalaryCycleSummary(transactions) {
   const salaries = transactions
     .filter(isSalaryTransaction)
     .sort((a, b) => b.date.localeCompare(a.date) || b.amount - a.amount)
@@ -216,25 +219,27 @@ export function computeSalaryCycleSummary(transactions, accountId = 'all') {
   const periodStart = last.date
   let spent = 0
   let toSavings = 0
+  let fromSavings = 0
+  let fromSavingsCount = 0
 
   for (const tx of transactions) {
     if (tx.date < periodStart) continue
-    if (!txBelongsToAccount(tx, accountId)) continue
     if (tx.type === 'expense') spent += tx.amount
-    if (
-      tx.type === 'transfer' &&
-      tx.fromAccount === 'main' &&
-      tx.toAccount === 'savings'
-    ) {
+    if (tx.type === 'transfer' && tx.fromAccount === 'main' && tx.toAccount === 'savings') {
       toSavings += tx.amount
+    }
+    if (tx.type === 'transfer' && tx.fromAccount === 'savings' && tx.toAccount === 'main') {
+      fromSavings += tx.amount
+      fromSavingsCount += 1
     }
   }
 
   const salaryAmount = roundMoney(last.amount)
   spent = roundMoney(spent)
   toSavings = roundMoney(toSavings)
+  fromSavings = roundMoney(fromSavings)
   const keptFromSalary = roundMoney(salaryAmount - spent)
-  const onMain = roundMoney(keptFromSalary - toSavings)
+  const netToSavings = roundMoney(toSavings - fromSavings)
 
   const start = new Date(periodStart + 'T12:00:00')
   const next = new Date(start.getFullYear(), start.getMonth() + 1, start.getDate())
@@ -253,7 +258,9 @@ export function computeSalaryCycleSummary(transactions, accountId = 'all') {
     spent,
     keptFromSalary,
     toSavings,
-    onMain,
+    fromSavings,
+    fromSavingsCount,
+    netToSavings,
     spendRate: roundMoney(spent / daysInPeriod),
   }
 }

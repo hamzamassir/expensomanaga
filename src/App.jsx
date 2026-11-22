@@ -119,10 +119,7 @@ function AppContent() {
     [transactions, activeAccount],
   )
 
-  const salaryCycle = useMemo(
-    () => computeSalaryCycleSummary(transactions, activeAccount),
-    [transactions, activeAccount],
-  )
+  const salaryCycle = useMemo(() => computeSalaryCycleSummary(transactions), [transactions])
 
   const goalsSummary = useMemo(
     () =>

@@ -76,42 +76,55 @@ export default function Dashboard({
       {salaryCycle && (
         <div className="glass rounded-2xl p-3 md:p-4">
           <div className="mb-2 flex flex-wrap items-baseline justify-between gap-1">
-            <h3 className="text-sm font-semibold">Since last salary</h3>
+            <h3 className="text-sm font-semibold">This paycheck</h3>
             <p className="text-[10px] text-muted md:text-[11px]">
-              {formatShortDate(salaryCycle.lastSalaryDate)} · {formatMAD(salaryCycle.lastSalaryAmount)}{' '}
-              <span className="text-white/40">→ ~{formatShortDate(salaryCycle.nextSalaryDate)}</span>
+              {formatShortDate(salaryCycle.lastSalaryDate)} · {formatMAD(salaryCycle.lastSalaryAmount)} received
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3">
-            <div className="glass-expense rounded-xl p-2.5 md:p-3">
-              <p className="text-[9px] uppercase tracking-wide text-muted md:text-[10px]">Spent</p>
-              <p className="mt-1 text-sm font-bold tabular-nums text-expense md:text-lg">
+          <div className="grid grid-cols-2 gap-2 md:gap-3">
+            <div className="glass-expense rounded-xl p-3 md:p-4">
+              <p className="text-[10px] uppercase tracking-wide text-muted">Spent from it</p>
+              <p className="mt-1 text-xl font-bold tabular-nums text-expense md:text-2xl">
                 {formatMAD(salaryCycle.spent)}
               </p>
+              <p className="mt-1 text-[10px] leading-snug text-muted">
+                Every expense since payday — including after you moved money Savings → Main.
+              </p>
             </div>
-            <div className="glass-income rounded-xl p-2.5 md:p-3">
-              <p className="text-[9px] uppercase tracking-wide text-muted md:text-[10px]">Kept</p>
-              <p className="mt-1 text-sm font-bold tabular-nums text-income md:text-lg">
+            <div className="glass-income rounded-xl p-3 md:p-4">
+              <p className="text-[10px] uppercase tracking-wide text-muted">Still from paycheck</p>
+              <p className="mt-1 text-xl font-bold tabular-nums text-income md:text-2xl">
                 {formatMAD(salaryCycle.keptFromSalary)}
               </p>
-              <p className="mt-0.5 text-[9px] text-muted">salary − spent</p>
-            </div>
-            <div className="glass rounded-xl p-2.5 md:p-3">
-              <p className="text-[9px] uppercase tracking-wide text-muted md:text-[10px]">To savings</p>
-              <p className="mt-1 text-sm font-bold tabular-nums text-transfer md:text-lg">
-                {formatMAD(salaryCycle.toSavings)}
+              <p className="mt-1 text-[10px] leading-snug text-muted">
+                Salary minus spent (Main + Savings together).
               </p>
             </div>
-            <div className="glass-subtle rounded-xl p-2.5 md:p-3">
-              <p className="text-[9px] uppercase tracking-wide text-muted md:text-[10px]">On main</p>
-              <p className="mt-1 text-sm font-bold tabular-nums md:text-lg">
-                {formatMAD(salaryCycle.onMain)}
+          </div>
+          <div className="mt-2 grid grid-cols-2 gap-2 text-xs md:grid-cols-3 md:gap-3">
+            <div className="glass-subtle rounded-xl px-2.5 py-2">
+              <span className="text-muted">Main → Savings</span>
+              <p className="font-semibold tabular-nums text-transfer">{formatMAD(salaryCycle.toSavings)}</p>
+            </div>
+            <div className="glass-subtle rounded-xl px-2.5 py-2">
+              <span className="text-muted">
+                Savings → Main
+                {salaryCycle.fromSavingsCount > 0
+                  ? ` · ${salaryCycle.fromSavingsCount}×`
+                  : ''}
+              </span>
+              <p className="font-semibold tabular-nums">{formatMAD(salaryCycle.fromSavings)}</p>
+            </div>
+            <div className="glass-subtle col-span-2 rounded-xl px-2.5 py-2 md:col-span-1">
+              <span className="text-muted">Net to Savings</span>
+              <p className="font-semibold tabular-nums text-transfer">
+                {formatMAD(salaryCycle.netToSavings)}
               </p>
-              <p className="mt-0.5 text-[9px] text-muted">not spent or moved</p>
             </div>
           </div>
           <p className="mt-2 text-[10px] text-muted">
-            Day {salaryCycle.daysInPeriod} of pay period · ~{formatMAD(salaryCycle.spendRate)}/day
+            Day {salaryCycle.daysInPeriod} · next salary ~{formatShortDate(salaryCycle.nextSalaryDate)} ·{' '}
+            ~{formatMAD(salaryCycle.spendRate)}/day
           </p>
         </div>
       )}
